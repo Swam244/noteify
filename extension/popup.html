@@ -9,6 +9,18 @@
     <h2>Send to</h2>
   </header>
   <main>
+    <form id="loginForm" style="display:none; flex-direction:column; align-items:center; gap:10px; margin-bottom:18px;">
+      <input id="loginEmail" class="input" type="email" placeholder="Email" required autocomplete="username" />
+      <input id="loginPassword" class="input" type="password" placeholder="Password" required autocomplete="current-password" />
+      <button id="loginBtn" class="button" type="submit">Sign In</button>
+    </form>
+    <div id="notionConnectContainer" style="display:none; flex-direction:column; align-items:center; gap:10px; margin-bottom:18px;">
+      <button id="connectNotionBtn" class="button" style="display:flex; align-items:center; gap:8px; background:#fff; color:#181B22; border:2px solid #000;">
+        <img src="notion.png" alt="Notion" style="width:22px; height:22px; vertical-align:middle;" />
+        Connect with Notion
+      </button>
+    </div>
+    <p id="notionMsg" style="display:none; color:#FFD700; margin-bottom:10px;"></p>
     <textarea id="highlightedText" class="input" rows="6" placeholder="Highlight some text..."></textarea>
 
     <label><input type="radio" name="destination" value="notion" checked> Notion</label>

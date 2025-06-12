@@ -3,6 +3,26 @@ console.log("[content.js] Content script loaded");
 let lastSelectedText = "";
 let floatingDiv = null;
 let feedbackDiv = null;
+let notionConnected = null;
+
+async function checkNotionConnection() {
+  try {
+    const res = await fetch("http://localhost:8000/users/login", {
+      method: "GET",
+      credentials: "include"
+    });
+    if (res.status === 200) {
+      const data = await res.json();
+      notionConnected = !!data.notion_connected;
+    } else {
+      notionConnected = false;
+    }
+  } catch (err) {
+    notionConnected = false;
+  }
+}
+
+checkNotionConnection();
 
 function removeFloatingUI() {
   if (floatingDiv) {
@@ -112,11 +132,20 @@ function showFeedback(msg) {
   
   
 
-document.addEventListener("mouseup", () => {
+document.addEventListener("mouseup", async () => {
   const selection = window.getSelection();
   const text = selection.toString().trim();
 
   if (!text) {
+    removeFloatingUI();
+    return;
+  }
+
+  // Check Notion connection before showing UI
+  if (notionConnected === null) {
+    await checkNotionConnection();
+  }
+  if (!notionConnected) {
     removeFloatingUI();
     return;
   }
