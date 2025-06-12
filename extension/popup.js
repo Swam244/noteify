@@ -2,6 +2,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const textArea = document.getElementById("highlightedText");
     const sendBtn = document.getElementById("sendBtn");
     const statusMsg = document.getElementById("statusMsg");
+    const loginForm = document.getElementById("loginForm");
+    const loginEmail = document.getElementById("loginEmail");
+    const loginPassword = document.getElementById("loginPassword");
+    const loginBtn = document.getElementById("loginBtn");
+    const notionMsg = document.getElementById("notionMsg");
+    const notionConnectContainer = document.getElementById("notionConnectContainer");
+    const connectNotionBtn = document.getElementById("connectNotionBtn");
   
     console.log("[popup.js] Popup loaded.");
   
@@ -25,6 +32,85 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       );
     });
+  
+    async function checkLoginStatus() {
+      try {
+        const res = await fetch("http://localhost:8000/users/login", {
+          method: "GET",
+          credentials: "include"
+        });
+        if (res.status === 200) {
+          const data = await res.json();
+          // Hide login form
+          if (loginForm) loginForm.style.display = "none";
+          // Check Notion connection
+          if (!data.notion_connected) {
+            if (notionMsg) {
+              notionMsg.textContent = "Please connect your Notion account.";
+              notionMsg.style.display = "block";
+            }
+            if (notionConnectContainer) notionConnectContainer.style.display = "flex";
+            if (textArea) textArea.style.display = "none";
+            if (sendBtn) sendBtn.style.display = "none";
+            if (statusMsg) statusMsg.style.display = "none";
+          } else {
+            if (notionMsg) notionMsg.style.display = "none";
+            if (notionConnectContainer) notionConnectContainer.style.display = "none";
+            if (textArea) textArea.style.display = "block";
+            if (sendBtn) sendBtn.style.display = "block";
+            if (statusMsg) statusMsg.style.display = "block";
+          }
+        } else if (res.status === 401) {
+          // Not logged in, show login form
+          if (loginForm) loginForm.style.display = "block";
+          if (notionConnectContainer) notionConnectContainer.style.display = "none";
+          if (textArea) textArea.style.display = "none";
+          if (sendBtn) sendBtn.style.display = "none";
+          if (statusMsg) statusMsg.style.display = "none";
+          if (notionMsg) notionMsg.style.display = "none";
+        } else {
+          statusMsg.textContent = "Unexpected error. Try again later.";
+        }
+      } catch (err) {
+        statusMsg.textContent = "Network error. Check server.";
+      }
+    }
+  
+    if (loginForm && loginBtn) {
+      loginBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const email = loginEmail.value.trim();
+        const password = loginPassword.value.trim();
+        if (!email || !password) {
+          statusMsg.textContent = "Enter email and password.";
+          return;
+        }
+        statusMsg.textContent = "Signing in...";
+        try {
+          const res = await fetch("http://localhost:8000/users/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ email, password })
+          });
+          if (res.status === 200) {
+            statusMsg.textContent = "Login successful!";
+            await checkLoginStatus();
+          } else {
+            statusMsg.textContent = "Login failed. Check credentials.";
+          }
+        } catch (err) {
+          statusMsg.textContent = "Network error during login.";
+        }
+      });
+    }
+  
+    if (connectNotionBtn) {
+      connectNotionBtn.addEventListener("click", () => {
+        // Open Notion OAuth URL in a new tab
+        window.open("http://localhost:8000/users/oauth2/notion", "_blank");
+      });
+    }
   
     sendBtn.addEventListener("click", async () => {
       const text = textArea.value.trim();
@@ -55,5 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
         statusMsg.textContent = "Network error. Check HTTPS or CORS.";
       }
     });
+  
+    checkLoginStatus();
   });
   

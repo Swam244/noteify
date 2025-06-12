@@ -1,12 +1,13 @@
 from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi import Request, Response, status,HTTPException
+from fastapi import Request, Response,status,HTTPException
 from typing import Dict
 from collections import defaultdict
 import time
 import secrets
 from redis.asyncio import Redis
+import logging
 
-
+logger = logging.getLogger(__name__)
 
 class RateLimiter(BaseHTTPMiddleware):
     def __init__(self, app, redis: Redis, max_requests: int, window_seconds: int):
@@ -19,13 +20,14 @@ class RateLimiter(BaseHTTPMiddleware):
         client_ip = request.client.host
         url_path = request.url.path
         redis_key = f"ratelimit:{client_ip}:{url_path}"
-
+        logger.info(f"RateLimiter: {client_ip} accessing {url_path}")
         current_count = await self.redis.incr(redis_key)
 
         if current_count == 1:
             await self.redis.expire(redis_key, self.window_seconds)
 
         if current_count > self.max_requests:
+            logger.warning(f"Rate limit exceeded for {client_ip} on {url_path}")
             return Response(
                 content="Too many requests. Please try again later.",
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS
