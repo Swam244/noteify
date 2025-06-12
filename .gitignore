@@ -1,0 +1,111 @@
+# Python
+# =======
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+.Python
+build/
+dist/
+
+# Virtual environment
+.venv/
+venv/
+env/
+/var/lib/some/path/to/venv/
+
+# Distribution / packaging
+.eggs/
+*.egg
+*.whl
+
+# C extensions
+*.so
+
+# Unit test / coverage reports
+.coverage
+.tox/
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDEs and Editors
+# -----------------
+# VS Code
+.vscode/
+# PyCharm
+.idea/
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+# Vim
+*.swp
+*.swo
+*.swn
+*.bak
+# Emacs
+#*~
+
+# Operating System Files
+# ----------------------
+.DS_Store
+Thumbs.db
+
+# JavaScript / Node.js
+# ====================
+# Node modules
+node_modules/
+
+# Yarn
+.yarn/
+.yarnrc
+yarn-error.log
+yarn-debug.log*
+
+# Build artifacts
+dist/
+build/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+coverage/
+
+# Editor/IDE specific files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Webpack etc.
+.eslintcache
+.stylelintcache
+
+# Svelte/Vue/React/Angular specific output
+.svelte-kit/
+.nuxt/
+.next/
+.angular/
+out/ # Next.js output
+.cache/ # General cache directories
+
+# Tests
+/test_results/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+# Docker Swarm
+.docker-build/
+
+# Other temporary files
+*.tmp
+*.temp
+*.log
+*.bak

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Send to Notion</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h2>Send to</h2>
+  </header>
+  <main>
+    <textarea id="highlightedText" class="input" rows="6" placeholder="Highlight some text..."></textarea>
+
+    <label><input type="radio" name="destination" value="notion" checked> Notion</label>
+    <label><input type="radio" name="destination" value="notepad"> Notepad</label>
+
+    <button id="sendBtn" class="button">Send</button>
+    <p id="statusMsg"></p>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
