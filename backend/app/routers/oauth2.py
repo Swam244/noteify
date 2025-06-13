@@ -11,11 +11,15 @@ import logging
 from fastapi.responses import RedirectResponse
 import requests
 
+
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/oauth2",tags=['OAuth2'])
 
+
+
 @router.get("/notion")
-def notion_oauth2_start():#user: UserAuth = Depends(Autherize)):
+def notion_oauth2_start(user: UserAuth = Depends(Autherize)):
     url = (
         f"https://api.notion.com/v1/oauth/authorize?owner=user"
         f"&client_id={settings.NOTION_CLIENT_ID}"
@@ -23,6 +27,8 @@ def notion_oauth2_start():#user: UserAuth = Depends(Autherize)):
         f"&response_type=code"
     )
     return RedirectResponse(url)
+
+
 
 @router.get("/notion/callback")
 def notion_oauth2_callback(code: str = None, db: Session = Depends(get_db),user: UserAuth = Depends(Autherize)):
