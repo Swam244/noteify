@@ -3,25 +3,21 @@ console.log("[content.js] Content script loaded");
 let lastSelectedText = "";
 let floatingDiv = null;
 let feedbackDiv = null;
-let notionConnected = null;
+let notionConnected = false; // Initialize to false, will be updated by background script
 
 async function checkNotionConnection() {
   try {
-    const res = await fetch("https://noteify.duckdns.org/users/login", {
-      method: "GET",
-      credentials: "include"
-    });
-    if (res.status === 200) {
-      const data = await res.json();
-      notionConnected = !!data.notion_connected;
-    } else {
-      notionConnected = false;
-    }
+    console.log("[content.js] Requesting Notion connection status from background script...");
+    const response = await chrome.runtime.sendMessage({ type: "CHECK_NOTION_CONNECTION" });
+    notionConnected = response.notionConnected;
+    console.log("[content.js] Notion connection status received from background script:", notionConnected);
   } catch (err) {
     notionConnected = false;
+    console.error("[content.js] Error requesting Notion connection status from background script:", err);
   }
 }
 
+// Call it once on load to get initial status
 checkNotionConnection();
 
 function removeFloatingUI() {
@@ -132,34 +128,51 @@ function showFeedback(msg) {
   
   
 
+// Use mouseup for showing the floating UI
 document.addEventListener("mouseup", async () => {
+  console.log("[content.js] mouseup event fired.");
   const selection = window.getSelection();
   const text = selection.toString().trim();
+  console.log("[content.js] Selected text on mouseup:", text);
 
   if (!text) {
     removeFloatingUI();
-    return;
-  }
-
-  // Check Notion connection before showing UI
-  if (notionConnected === null) {
-    await checkNotionConnection();
-  }
-  if (!notionConnected) {
-    removeFloatingUI();
+    console.log("[content.js] No text selected, removing UI.");
     return;
   }
 
   lastSelectedText = text;
   console.log("[content.js] Highlighted:", text);
 
-  const range = selection.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
-  showFloatingUI(text, rect);
+  // Re-check Notion connection status via background script if not already true
+  if (!notionConnected) {
+    console.log("[content.js] Notion not connected, re-checking status via background script...");
+    await checkNotionConnection(); // This will now use the background script
+    if (!notionConnected) {
+      removeFloatingUI();
+      console.log("[content.js] Notion still not connected after re-check, removing UI.");
+      return;
+    }
+  }
+
+  // Show the floating UI at the selection
+  try {
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    console.log("[content.js] Attempting to show floating UI.");
+    showFloatingUI(text, rect);
+  } catch (e) {
+    // No valid range
+    removeFloatingUI();
+    console.error("[content.js] Error getting selection range or showing UI:", e);
+  }
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "GET_HIGHLIGHTED_TEXT") {
     sendResponse({ text: lastSelectedText });
+  } else if (msg.type === "UPDATE_NOTION_CONNECTION_STATUS") {
+    notionConnected = msg.notionConnected;
+    // console.log("[content.js] Notion connection status updated by popup:", notionConnected);
   }
 });

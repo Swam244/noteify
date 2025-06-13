@@ -10,8 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const notionConnectContainer = document.getElementById("notionConnectContainer");
     const connectNotionBtn = document.getElementById("connectNotionBtn");
     const refreshBtn = document.getElementById("refreshBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
   
-    console.log("[popup.js] Popup loaded.");
+    // console.log("[popup.js] Popup loaded.");
   
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (!tabs.length) {
@@ -19,8 +20,15 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
   
+      const tab = tabs[0];
+      // Only try to send message if the tab is http(s)
+      if (!/^https?:/.test(tab.url)) {
+        textArea.placeholder = "Not available on this page";
+        return;
+      }
+  
       chrome.tabs.sendMessage(
-        tabs[0].id,
+        tab.id,
         { type: "GET_HIGHLIGHTED_TEXT" },
         (response) => {
           if (chrome.runtime.lastError) {
@@ -42,10 +50,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         if (res.status === 200) {
           const data = await res.json();
+          console.log('[popup.js] Login response:', data);
+          console.log('[popup.js] notion_connected:', data.notionConnected, typeof data.notionConnected);
+          // Send update to content script
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs.length && /^https?:/.test(tabs[0].url)) {
+              console.log("[popup.js] Sending Notion connection status to content script:", data.notionConnected);
+              chrome.tabs.sendMessage(tabs[0].id, { type: "UPDATE_NOTION_CONNECTION_STATUS", notionConnected: data.notionConnected });
+            }
+          });
           // Hide login form
           if (loginForm) loginForm.style.display = "none";
+          // Show logout button
+          if (logoutBtn) logoutBtn.style.display = "block";
           // Check Notion connection
-          if (!data.notion_connected) {
+          if (!data.notionConnected) {
             if (notionMsg) {
               notionMsg.textContent = "Please connect your Notion account.";
               notionMsg.style.display = "block";
@@ -64,10 +83,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (res.status === 401) {
           // Not logged in, show login form
           if (loginForm) loginForm.style.display = "block";
+          // Hide logout button
+          if (logoutBtn) logoutBtn.style.display = "none";
           if (notionConnectContainer) notionConnectContainer.style.display = "none";
           if (textArea) textArea.style.display = "none";
           if (sendBtn) sendBtn.style.display = "none";
-          if (statusMsg) statusMsg.style.display = "none";
           if (notionMsg) notionMsg.style.display = "none";
         } else {
           statusMsg.textContent = "Unexpected error. Try again later.";
@@ -116,6 +136,29 @@ document.addEventListener("DOMContentLoaded", () => {
     if (refreshBtn) {
       refreshBtn.addEventListener("click", () => {
         window.location.reload();
+      });
+    }
+  
+    // Logout button logic
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        statusMsg.textContent = "Logging out...";
+        try {
+          const res = await fetch("https://noteify.duckdns.org/users/logout", {
+            method: "POST",
+            credentials: "include"
+          });
+  
+          if (res.ok) {
+            statusMsg.textContent = "Logged out successfully!";
+            await checkLoginStatus(); // Re-check status to update UI
+          } else {
+            statusMsg.textContent = "Logout failed.";
+          }
+        } catch (err) {
+          console.error("[popup.js] Logout error:", err);
+          statusMsg.textContent = "Network error during logout.";
+        }
       });
     }
   
