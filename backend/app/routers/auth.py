@@ -92,7 +92,7 @@ def login(data: loginRequest,response: Response,db: Session = Depends(get_db)):
         notionConnected=user.notionConnected
     )
 
-@router.get("/logout",status_code=status.HTTP_200_OK,response_model=logoutResponse)
+@router.post("/logout",status_code=status.HTTP_200_OK,response_model=logoutResponse)
 def logout(response : Response, user: UserAuth = Depends(Autherize),db: Session = Depends(get_db)):
     logger.info(f"Logout for user: {user.email}")
     user.is_logged_in = False

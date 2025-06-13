@@ -27,6 +27,23 @@ chrome.runtime.onInstalled.addListener(() => {
         .catch((err) => {
           console.error("[background.js] Error:", err);
         });
+    } else if (message.type === "CHECK_NOTION_CONNECTION") {
+      console.log("[background.js] Checking Notion connection status...");
+      fetch("https://noteify.duckdns.org/users/login", {
+        method: "GET",
+        credentials: "include"
+      })
+      .then(res => res.json())
+      .then(data => {
+        const notionConnectedStatus = !!data.notionConnected;
+        console.log("[background.js] Notion connection status fetched:", notionConnectedStatus);
+        sendResponse({ notionConnected: notionConnectedStatus });
+      })
+      .catch(err => {
+        console.error("[background.js] Error checking Notion connection:", err);
+        sendResponse({ notionConnected: false });
+      });
+      return true; // Indicates that sendResponse will be called asynchronously
     }
   });
   
