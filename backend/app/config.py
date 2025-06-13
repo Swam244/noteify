@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     DATABASE_USER : str
     DATABASE_NAME : str
     DATABASE_PASSWORD : str
+    DATABASE_PORT : int
     
     SECRET_KEY : str
     ALGORITHM : str

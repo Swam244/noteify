@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const notionMsg = document.getElementById("notionMsg");
     const notionConnectContainer = document.getElementById("notionConnectContainer");
     const connectNotionBtn = document.getElementById("connectNotionBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
   
     console.log("[popup.js] Popup loaded.");
   
@@ -108,7 +109,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (connectNotionBtn) {
       connectNotionBtn.addEventListener("click", () => {
         // Open Notion OAuth URL in a new tab
-        window.open("https://noteify.duckdns.org/users/oauth2/notion", "_blank");
+        window.open("https://noteify.duckdns.org/oauth2/notion", "_blank");
+      });
+    }
+  
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => {
+        window.location.reload();
       });
     }
   
