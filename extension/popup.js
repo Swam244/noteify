@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
     async function checkLoginStatus() {
       try {
-        const res = await fetch("http://localhost:8000/users/login", {
+        const res = await fetch("https://noteify.duckdns.org/users/login", {
           method: "GET",
           credentials: "include"
         });
@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         statusMsg.textContent = "Signing in...";
         try {
-          const res = await fetch("http://localhost:8000/users/login", {
+          const res = await fetch("https://noteify.duckdns.org/users/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (connectNotionBtn) {
       connectNotionBtn.addEventListener("click", () => {
         // Open Notion OAuth URL in a new tab
-        window.open("http://localhost:8000/users/oauth2/notion", "_blank");
+        window.open("https://noteify.duckdns.org/users/oauth2/notion", "_blank");
       });
     }
   

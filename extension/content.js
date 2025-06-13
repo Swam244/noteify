@@ -7,7 +7,7 @@ let notionConnected = null;
 
 async function checkNotionConnection() {
   try {
-    const res = await fetch("http://localhost:8000/users/login", {
+    const res = await fetch("https://noteify.duckdns.org/users/login", {
       method: "GET",
       credentials: "include"
     });

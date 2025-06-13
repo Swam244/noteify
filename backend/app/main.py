@@ -5,7 +5,7 @@ import secrets
 from app.core.middleware import RateLimiter
 from redis.asyncio import Redis
 from app.config import settings
-from app.routers import auth,notes,notion
+from app.routers import auth,notes,notion,oauth2
 from app.db import models
 from app.db.database import engine
 import logging
@@ -32,7 +32,7 @@ app.add_middleware(RateLimiter,redis,max_requests=1000, window_seconds=30)
 
 
 app.include_router(auth.router)
-
+app.include_router(oauth2.router)
 # Logging setup
 logging.basicConfig(
     level=logging.INFO,
