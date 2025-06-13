@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     NOTION_CLIENT_SECRET: str
     NOTION_REDIRECT_URI: str
     
+    QDRANT_URL: str
+    QDRANT_API_KEY : str
+
+    GROQ_API_KEY : str
+
+    COHERE_API_KEY : str
+
     class Config:
         env_file = ".env"
 
