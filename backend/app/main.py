@@ -1,18 +1,23 @@
-from fastapi import FastAPI,Request
+from fastapi import FastAPI,Request,Depends
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
-import secrets
 from app.core.middleware import RateLimiter
 from redis.asyncio import Redis
 from app.config import settings
 from app.routers import auth,notes,notion,oauth2
 from app.db import models
+from app.core.notion_sdk import createNotionDB,createNotionPage
 from app.db.database import engine
 import logging
+from app.password_utils import encryptToken,decryptToken
 from app.core.cohereClient import get_embeddings
 from app.core.groqClient import categorize_note,enrich_note
 
-models.Base.metadata.create_all(bind=engine,checkfirst=True)  # Tables are created only when they do not exist.
+from app.db.models import UserAuth,NotionID
+from app.utils import Autherize
+from app.db.database import get_db
+from sqlalchemy.orm import Session
+
+# models.Base.metadata.create_all(bind=engine,checkfirst=True)  # Tables are created only when they do not exist.
 
 
 app = FastAPI()
@@ -31,6 +36,7 @@ app.add_middleware(RateLimiter,redis,max_requests=1000, window_seconds=30)
 
 app.include_router(auth.router)
 app.include_router(oauth2.router)
+app.include_router(notes.router)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,7 +53,17 @@ def root():
     logger.info("Root endpoint accessed")
     text = "AI is very helpful in today's daily life"
     embedding = get_embeddings(text)
-    category = categorize_note(text)
-    enriched = enrich_note(text)
-    return {"Message": "Hello World", "embeddings": embedding, "category": category, "enriched_content": enriched}
+    # category = categorize_note(text)
+    # enriched = enrich_note(text)
+    # encryptedText = encryptToken(text)
+    # decryptedText = decryptToken(encryptedText)
+    return {"Message": text, "embeddings": embedding, }#"category": category, "enriched_content": enriched,"texten":encryptedText,"textdec":decryptedText}
+
+@app.get("/createdb")
+def create(user : UserAuth = Depends(Autherize), db : Session = Depends(get_db)):
+    userid = user.user_id
+    notionToken = db.query(NotionID).filter(NotionID.user_id == userid).first()
+    print(notionToken.token)
+    return createNotionDB(notionToken.token,db,user)
+    # return createNotionPage(notionToken.token,user,db,isDefault=True)
 

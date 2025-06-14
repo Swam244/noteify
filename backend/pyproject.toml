@@ -24,4 +24,6 @@ dependencies = [
     "pytest>=8.4.0",
     "cohere>=5.15.0",
     "groq>=0.28.0",
+    "cryptography>=45.0.4",
+    "inflect>=7.5.0",
 ]

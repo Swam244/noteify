@@ -8,8 +8,17 @@ from sqlalchemy.orm import Session
 from app.db.models import UserAuth, NotionID
 from app.db.database import get_db
 import logging
+import inflect
 
 logger = logging.getLogger(__name__)
+
+p = inflect.engine()
+
+def normalizeCategoryName(name: str) -> str:
+    name = name.strip().lower()
+    name = p.singular_noun(name) or name 
+    return name.upper()  
+
 
 def md5_hash(data):
     md5_hash = hashlib.md5(data.encode())
