@@ -5,7 +5,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
+  <header id="mainHeader">
     <h2>Send to</h2>
   </header>
   <main>
@@ -23,13 +23,46 @@
     <p id="notionMsg" style="display:none; color:#FFD700; margin-bottom:10px;"></p>
     <textarea id="highlightedText" class="input" rows="6" placeholder="Highlight some text..."></textarea>
 
-    <label><input type="radio" name="destination" value="notion" checked> Notion</label>
-    <label><input type="radio" name="destination" value="notepad"> Notepad</label>
+    <div id="destinationOptions" style="display: none;">
+      <label><input type="radio" name="destination" value="notion" checked> Notion</label>
+      <label><input type="radio" name="destination" value="notepad"> Notepad</label>
+    </div>
 
     <button id="sendBtn" class="button">Send</button>
     <button id="logoutBtn" class="button" style="margin-top: 10px;">Logout</button>
     <button id="refreshBtn" class="button" style="margin-top:8px;">Refresh</button>
     <p id="statusMsg"></p>
+  
+    <button id="settingsToggleBtn" class="button" style="margin-top: 10px;">Settings</button>
+
+    <div id="settingsView" style="display:none; flex-direction:column; gap:10px; margin-top:15px;">
+      <h3 style="margin-bottom:5px;">Settings</h3>
+
+      <div>
+        <label><strong>User Info:</strong></label>
+        <p id="userInfo" style="font-size: 14px; color: #555;"></p>
+      </div>
+
+      <div>
+        <label for="preferenceSelect">Preference:</label>
+        <div id="preferenceOptions">
+          <label><input type="radio" name="preference" class="preference-radio" value="RAW"> RAW</label><br>
+          <label><input type="radio" name="preference" class="preference-radio" value="CATEGORIZED_AND_ENRICHED"> CATEGORIZED_AND_ENRICHED</label><br>
+          <label><input type="radio" name="preference" class="preference-radio" value="CATEGORIZED_AND_RAW"> CATEGORIZED_AND_RAW</label>
+        </div>
+      </div>
+
+      <div>
+        <label for="categoryInput">Add Category:</label>
+        <input type="text" id="categoryInput" class="input" placeholder="e.g. Work, Research" />
+        <button id="saveCategoryBtn" class="button">Save Category</button>
+      </div>
+
+      <p id="statusMsgSettings" style="margin-top: 10px; color: #fff;"></p>
+
+      <button id="backBtn" class="button">Back</button>
+    </div>
+
   </main>
   <script src="popup.js"></script>
 </body>
