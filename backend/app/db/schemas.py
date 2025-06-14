@@ -20,6 +20,7 @@ class getLoginInfo(BaseModel):
     username: str
     email : str
     notionConnected: bool
+    preference : str
 
 class loginResponse(getLoginInfo):
     pass
@@ -31,4 +32,11 @@ class loginRequest(BaseModel):
     email : EmailStr
     password : str
 
+class preferenceData(BaseModel):
+    preference : str
 
+class Notes(BaseModel):
+    text : str
+
+class Category(BaseModel):
+    category : str

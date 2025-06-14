@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     
     SERVER_KEY : str
     SSL_CERTFILE : str
+
+    TOKEN_KEY : str
     
     NOTION_CLIENT_ID: str
     NOTION_CLIENT_SECRET: str

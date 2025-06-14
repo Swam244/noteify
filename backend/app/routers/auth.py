@@ -1,7 +1,7 @@
 # app/routers/auth.py
 from fastapi import APIRouter,Depends,Response
 from fastapi import status, HTTPException
-from app.db.models import UserAuth,NotionID
+from app.db.models import UserAuth
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from app.utils import Autherize,generate_jwt_token
@@ -9,6 +9,7 @@ from app.db.schemas import *
 from app.config import settings
 from app.password_utils import verify_hash,generate_hash
 import logging
+from sqlalchemy.exc import DataError
 
 router = APIRouter(prefix="/users",tags=['Users'])
 logger = logging.getLogger(__name__)
@@ -89,7 +90,8 @@ def login(data: loginRequest,response: Response,db: Session = Depends(get_db)):
     return loginResponse(
         username=user.username,
         email=user.email,
-        notionConnected=user.notionConnected
+        notionConnected=user.notionConnected,
+        preference=user.preference
     )
 
 @router.post("/logout",status_code=status.HTTP_200_OK,response_model=logoutResponse)
@@ -101,3 +103,16 @@ def logout(response : Response, user: UserAuth = Depends(Autherize),db: Session 
     response.delete_cookie(key="refresh_token")
     return logoutResponse(info="Logged out Successfully")
 
+
+@router.patch("/preference",status_code=status.HTTP_200_OK,response_model=preferenceData)
+def preference(data : preferenceData, user : UserAuth = Depends(Autherize), db : Session = Depends(get_db)):
+    logger.info(f"Changing preference for {user.user_id} from {user.preference} to {data.preference}")
+    try:
+        user.preference = data.preference
+        db.commit()
+    except DataError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=f"Valid choices are 1.RAW 2.CATEGORIZED_AND_ENRICHED 3.CATEGORIZED_AND_RAW")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail=f"{e}") 
+    
+    return preferenceData(preference=str(user.preference.value))
