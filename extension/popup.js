@@ -152,7 +152,9 @@ document.addEventListener("DOMContentLoaded", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs.length) return;
     const tab = tabs[0];
-    if (!/^https?:/.test(tab.url)) {
+    console.log("[popup.js] Current tab URL:", tab.url);
+    // Allow https, http, and file protocols
+    if (!/^https?:|^file:/.test(tab.url)) {
       textArea.placeholder = "Not available on this page";
       return;
     }
@@ -353,7 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
     statusMsg.textContent = "Sending...";
 
     try {
-      const res = await fetch("https://your-backend.duckdns.org/api/capture", {
+      const res = await fetch("https://noteify.duckdns.org/notes/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, destination })
