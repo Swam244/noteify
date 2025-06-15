@@ -1,5 +1,118 @@
 console.log("[content.js] Content script loaded");
 
+
+function isValidPDFUrl(url) {
+  if (!url) return false;
+  if (!url.toLowerCase().endsWith('.pdf')) return false;
+  if (url.startsWith('file:')) return false;
+  if (url.includes('viewer.html') || url.includes('pdfproxy')) return false;
+  return true;
+}
+
+function injectButton(container, pdfUrl, index) {
+  if (!isValidPDFUrl(pdfUrl)) return;
+  if (container.querySelector(`.noteify-btn-${index}`)) return;
+
+  const btn = document.createElement('button');
+  btn.innerText = '📄 Open using Noteify';
+  btn.className = `noteify-btn-${index}`;
+  btn.style.position = 'absolute';
+  btn.style.top = `${10 + index * 40}px`;
+  btn.style.right = '10px';
+  btn.style.zIndex = '9999';
+  btn.style.backgroundColor = '#007bff';
+  btn.style.color = '#fff';
+  btn.style.padding = '6px 10px';
+  btn.style.border = 'none';
+  btn.style.borderRadius = '4px';
+  btn.style.cursor = 'pointer';
+
+  const proxiedUrl = `https://noteify.duckdns.org/pdfproxy?url=${encodeURIComponent(pdfUrl)}`;
+  const viewerUrl = `https://noteify.duckdns.org/pdfjs/web/viewer.html?file=${encodeURIComponent(proxiedUrl)}`;
+
+  btn.onclick = () => window.open(viewerUrl, '_blank');
+
+  const style = getComputedStyle(container);
+  if (style.position === 'static') container.style.position = 'relative';
+  container.appendChild(btn);
+  console.log(`✅ Injected Noteify button for ${pdfUrl}`);
+}
+
+let lastDetectedPDFs = new Set();
+
+function detectAllPDFs() {
+  const seen = new Set();
+  let index = 0;
+
+  const candidates = [
+    ...document.querySelectorAll('iframe, embed, object'),
+    ...Array.from(document.querySelectorAll('a')).filter(a => a.href.endsWith('.pdf'))
+  ];
+
+  console.log(`[Noteify] Found ${candidates.length} candidates`);
+
+  for (const el of candidates) {
+    let url = el.src || el.data || el.getAttribute('src') || el.getAttribute('data');
+    if (!url) continue;
+
+    if (url.includes('blob:')) continue; // Skip non-remote blobs
+
+    if (url.includes('.pdf') || el.type === 'application/pdf') {
+      if (seen.has(url)) continue;
+      seen.add(url);
+      injectButton(el.parentElement || el, url, index++);
+    }
+  }
+
+  console.log(`[Noteify] Injected buttons for ${seen.size} unique PDFs`);
+  lastDetectedPDFs = seen;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => detectAllPDFs(), 1000); // Delay to allow iframes to render
+
+  let debounceTimer = null;
+  const observer = new MutationObserver(() => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      console.log('[Noteify] Mutation observed, re-scanning...');
+      detectAllPDFs();
+    }, 500); // Debounced re-scan after mutations
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+});
+
+
+
+
+
+
+
+function redirectToViewer(pdfUrl) {
+  if (
+    pdfUrl.startsWith('file://') ||                   // Don't redirect local PDFs
+    pdfUrl.includes('pdfproxy') || 
+    pdfUrl.includes('viewer.html') || 
+    !pdfUrl.endsWith('.pdf')
+  ) return;
+
+  const proxiedUrl = `https://noteify.duckdns.org/pdfproxy?url=${encodeURIComponent(pdfUrl)}`;
+  const viewerUrl = `https://noteify.duckdns.org/pdfjs/web/viewer.html?file=${encodeURIComponent(proxiedUrl)}`;
+  window.location.href = viewerUrl;
+}
+
+if (
+  window.location.href.endsWith('.pdf') &&
+  !window.location.href.includes('/viewer.html') &&
+  !window.location.href.startsWith('file://')
+) {
+  redirectToViewer(window.location.href);
+}
+
+
+
+
 let lastSelectedText = "";
 let floatingDiv = null;
 let feedbackDiv = null;
