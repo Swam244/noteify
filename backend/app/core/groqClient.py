@@ -12,19 +12,20 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 
 client = Groq(api_key=GROQ_API_KEY)
 
-def categorize_note(note_text: str,categories) -> str:
+# REMEMBER HERE EXAMPLES WILL ALSO COME WHICH WILL BE DYNAMICALLY FETCHED BASED ON THE USER.
+def categorize_note(note_text: str) -> str:
 
-    # json_template = "{\n" + ",\n".join([f'  "{cat}": 0.0' for cat in categories]) + "\n}"
-    # prompt = construct_penalizing_prompt(note_text,categories)
     prompt = (
         "You are a specialist note taker and can instantly recognize in which topic you should put the text, i.e given a text you should be intelligent enough to note it in a particular category."
-        "You should list all the probable categories where it can belong with their score along with it between 0 and 1"
+        "You should list all the probable categories where it can belong with their score along with it between 0 and 1 and dont give same points to two categories , every category must have different points"
         "You should provide the output strictly in JSON format with no other thing. i.e output should only consist of JSON which will contain a list of categories with their corresponding score."
-        "If the note is about a **very specific or deep topic**, reduce the score of its broader parent categories (e.g., LLM → penalize AI and Technology)."
-        "Your goal is to help a note-taking system organize fine-grained notes and identify when a **new category might be needed"
-
+        "You should always try to return a subtopic as deep it is from the main topic"
+        
         "ex : input text : Gesturio is a modern web application built with Next.js, React, and TypeScript, designed to help users learn and practice American Sign Language (ASL)."
-        "output : {'Education': 0.7, 'Technology': 0.8, 'Language': 0.4, 'Programming': 0.6, 'Software': 0.5}"
+        "output : {'Web app': 0.7, 'Technology': 0.3, 'Sign Language': 0.4, 'Frontend development': 0.9, 'Software': 0.5}"
+
+        "ex : The majority of those killed or injured in Israeli strikes on Iran are women and children, the country's health minister Mohammad-Reza Zafarghand was quoted on state media as saying."
+        "output : {'News': 0.2, 'Middle East Conflict': 0.4, 'Politics': 0.35, 'Human Rights': 0.1, 'Isreal Iran War': 0.9}"
         "REMEMBER TO GIVE OUTPUT EXACTLY IN THE FORMAT AS ABOVE ONLY DIFFERENCE BEING THE SINGLE INVERTED SHOULD BE DOUBLE INVERTED"
         f"Text : {note_text}"
     )

@@ -17,7 +17,7 @@ qdrant_client = QdrantClient(
 )
 
 DATA_COLLECTION_NAME = "test"
-EMBEDDING_DIM = 768
+EMBEDDING_DIM = 384
 
 
 def initDataCollection():
@@ -61,7 +61,7 @@ def similarityDataSearch(text: str, user_id: str, threshold: float = 0.9):
     return result
 
 
-def saveHighlightData(text: str, user_id: str, category: str, enrichment: str):
+def saveHighlightData(text: str, user_id: int, category: str, enrichment: str):
     logger.info(f"Saving highlight for user_id: {user_id}, category: {category}")
     embedding = get_embeddings(text)
     qdrant_client.upsert(
@@ -71,7 +71,7 @@ def saveHighlightData(text: str, user_id: str, category: str, enrichment: str):
             vector=embedding,
             payload={
                 "highlight": text,
-                "user_id": user_id,
+                "user_id": str(user_id),
                 "category": category,
                 "enrichment": enrichment
             }
@@ -88,3 +88,21 @@ def listUserDataHighlights(user_id: str):
     )[0]
     logger.info(f"Found {len(highlights)} highlights for user_id: {user_id}")
     return highlights
+
+def similaritySearchCategory(text: str, user_id: int, threshold: float = 0.5):
+    logger.info(f"Performing category similarity search for user_id: {user_id} ")
+    embedding = get_embeddings(text)
+    print(len(embedding))
+    user_id = str(user_id)
+
+    hits = qdrant_client.search(
+        collection_name=DATA_COLLECTION_NAME,
+        query_vector=embedding,
+        limit=1,
+        query_filter={"must": [{"key": "user_id", "match": {"value": user_id}}]},   
+        score_threshold=threshold
+    )
+
+    result = hits
+    logger.info(f"Similarity search result: {result}")
+    return result
