@@ -10,7 +10,8 @@
     "contextMenus"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "https://noteify.duckdns.org/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -29,14 +30,6 @@
       "js": ["content.js"],
       "run_at": "document_start"
     }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "pdfjs/web/*",
-        "pdfjs/build/*"
-      ],
-      "matches": ["<all_urls>"]
-    }
   ]
+  
 }
