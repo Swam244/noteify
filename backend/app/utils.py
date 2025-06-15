@@ -9,6 +9,7 @@ from app.db.models import UserAuth, NotionID
 from app.db.database import get_db
 import logging
 import inflect
+from app.password_utils import encryptToken,decryptToken
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,17 @@ def normalizeCategoryName(name: str) -> str:
     name = name.strip().lower()
     name = p.singular_noun(name) or name 
     return name.upper()  
+
+
+def getCategoryCacheKey(user_id: int):
+    return f"noteify:predicted_category:{user_id}"
+
+
+def getNotionToken(user : UserAuth,db : Session) -> str:
+    id = user.user_id
+    encrypted = db.query(NotionID).filter(NotionID.user_id == id).first()
+    token = decryptToken(encrypted.token)
+    return token
 
 
 def md5_hash(data):
@@ -93,3 +105,4 @@ async def Autherize(request: Request, response: Response, jwt: str = Cookie(None
     )
     logger.info(f"User re-authorized with refresh token: {user.email}")
     return user
+

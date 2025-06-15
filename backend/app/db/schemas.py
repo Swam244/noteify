@@ -40,3 +40,7 @@ class Notes(BaseModel):
 
 class Category(BaseModel):
     category : str
+
+class CategoryNotes(BaseModel):
+    category : str
+    text : str
