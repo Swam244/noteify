@@ -7,7 +7,6 @@ __pycache__/
 *.pyo
 *.egg-info/
 .Python
-build/
 dist/
 
 # Virtual environment
@@ -70,7 +69,6 @@ yarn-debug.log*
 
 # Build artifacts
 dist/
-build/
 *.log
 npm-debug.log*
 pnpm-debug.log*
