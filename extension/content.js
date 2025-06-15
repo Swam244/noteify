@@ -73,16 +73,43 @@ function showFloatingUI(text, rect) {
   sendBtn.onmouseenter = () => sendBtn.style.transform = "scale(1.05)";
   sendBtn.onmouseleave = () => sendBtn.style.transform = "scale(1.0)";
 
-  sendBtn.addEventListener("click", () => {
+  sendBtn.addEventListener("click", async () => {
     chrome.runtime.sendMessage({
       type: "SEND_SELECTED_TEXT",
       text: text,
       destination: "notion", // Fixed destination
+    }, async (response) => {
+      console.log("[content.js] Received response from background:", response);
+      if (response && response.category) {
+        console.log("[content.js] Response contains category:", response.category);
+        // Show category confirmation form if a category is predicted
+        const result = await showCategoryConfirmationForm(response.category, text);
+        if (result.confirmed) {
+          // Send the confirmed category back to the backend
+          chrome.runtime.sendMessage({
+            type: "CONFIRM_CATEGORY",
+            text: text,
+            category: result.category,
+            destination: "notion"
+          }, (confirmResponse) => {
+            if (confirmResponse && confirmResponse.message) {
+              showFeedback(confirmResponse.message);
+            } else {
+              showFeedback("Failed to send to Notion after confirmation. Please try again.");
+            }
+          });
+        }
+      } else if (response && response.message) {
+        console.log("[content.js] Response contains message:", response.message);
+        // Show general message for RAW preference or other backend messages
+        showFeedback(response.message);
+      } else {
+        console.log("[content.js] Response is unexpected or empty.");
+        showFeedback("Failed to send to Notion. Please try again.");
+      }
+      removeFloatingUI();
+      window.getSelection().removeAllRanges();
     });
-
-    showFeedback("Noted to Notion!");
-    removeFloatingUI();
-    window.getSelection().removeAllRanges();
   });
 
   floatingDiv.appendChild(sendBtn);
@@ -126,7 +153,87 @@ function showFeedback(msg) {
     }, 2000); // visible for 2 seconds
   }
   
-  
+function showCategoryConfirmationForm(category, text) {
+  const formDiv = document.createElement("div");
+  formDiv.style.position = "fixed";
+  formDiv.style.top = "20px";
+  formDiv.style.left = "50%";
+  formDiv.style.transform = "translateX(-50%)";
+  formDiv.style.background = "#1F2937";
+  formDiv.style.color = "#A5F3FC";
+  formDiv.style.padding = "20px";
+  formDiv.style.borderRadius = "12px";
+  formDiv.style.boxShadow = "0 4px 20px rgba(0, 0, 0, 0.35)";
+  formDiv.style.fontSize = "15px";
+  formDiv.style.fontWeight = "500";
+  formDiv.style.fontFamily = "'Segoe UI', sans-serif";
+  formDiv.style.zIndex = "999999";
+  formDiv.style.width = "300px";
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Predicted Category";
+  heading.style.margin = "0 0 15px 0";
+  heading.style.color = "#fff";
+  formDiv.appendChild(heading);
+
+  const subheading = document.createElement("p");
+  subheading.textContent = "Do you want to proceed?";
+  subheading.style.margin = "0 0 15px 0";
+  formDiv.appendChild(subheading);
+
+  const categoryInput = document.createElement("input");
+  categoryInput.type = "text";
+  categoryInput.value = category;
+  categoryInput.style.width = "100%";
+  categoryInput.style.padding = "8px";
+  categoryInput.style.marginBottom = "15px";
+  categoryInput.style.background = "#2D3748";
+  categoryInput.style.border = "1px solid #4A5568";
+  categoryInput.style.borderRadius = "6px";
+  categoryInput.style.color = "#fff";
+  formDiv.appendChild(categoryInput);
+
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.display = "flex";
+  buttonContainer.style.gap = "10px";
+  buttonContainer.style.justifyContent = "flex-end";
+
+  const confirmBtn = document.createElement("button");
+  confirmBtn.textContent = "Confirm";
+  confirmBtn.style.padding = "8px 16px";
+  confirmBtn.style.background = "#7B61FF";
+  confirmBtn.style.color = "#fff";
+  confirmBtn.style.border = "none";
+  confirmBtn.style.borderRadius = "6px";
+  confirmBtn.style.cursor = "pointer";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.style.padding = "8px 16px";
+  cancelBtn.style.background = "#4A5568";
+  cancelBtn.style.color = "#fff";
+  cancelBtn.style.border = "none";
+  cancelBtn.style.borderRadius = "6px";
+  cancelBtn.style.cursor = "pointer";
+
+  buttonContainer.appendChild(cancelBtn);
+  buttonContainer.appendChild(confirmBtn);
+  formDiv.appendChild(buttonContainer);
+
+  document.body.appendChild(formDiv);
+
+  return new Promise((resolve) => {
+    confirmBtn.onclick = () => {
+      formDiv.remove();
+      resolve({ confirmed: true, category: categoryInput.value });
+    };
+
+    cancelBtn.onclick = () => {
+      formDiv.remove();
+      resolve({ confirmed: false });
+    };
+  });
+}
 
 // Use mouseup for showing the floating UI
 document.addEventListener("mouseup", async () => {
