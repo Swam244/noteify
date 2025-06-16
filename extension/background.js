@@ -28,7 +28,7 @@ chrome.runtime.onInstalled.addListener(() => {
         // Choose endpoint based on preference
         let endpoint;
         if (preference === 'RAW') {
-          endpoint = "https://noteify.duckdns.org/notes/create";
+          endpoint = "https://noteify.duckdns.org/notes/create/raw";
         } else if (preference === 'CATEGORIZED_AND_ENRICHED') {
           endpoint = "https://noteify.duckdns.org/notes/category";
         } else if (preference === 'CATEGORIZED_AND_RAW') {
@@ -43,13 +43,20 @@ chrome.runtime.onInstalled.addListener(() => {
           body: JSON.stringify({ text, destination }),
         });
       })
-      .then(res => res.json())
+      .then(res => {
+        console.log("[background.js] Fetch response status for SEND_SELECTED_TEXT:", res.status);
+        return res.json().then(data => ({ status: res.status, ...data }));
+      })
       .then(data => {
-        console.log("[background.js] Response:", data);
+        console.log("[background.js] Parsed data for SEND_SELECTED_TEXT:", data);
+        // Ensure a message is always sent back
+        if (!data.message && !data.category && !data.detail) {
+          data.message = "Sent successfully!"; // Default success message
+        }
         sendResponse(data);
       })
       .catch((err) => {
-        console.error("[background.js] Error:", err);
+        console.error("[background.js] Error sending selected text:", err);
         sendResponse({ message: "Failed to send to Notion. Please try again." });
       });
       return true; // Indicates that sendResponse will be called asynchronously
@@ -74,20 +81,43 @@ chrome.runtime.onInstalled.addListener(() => {
       const { text, category, destination } = message;
       console.log("[background.js] Confirming category:", { text, category, destination });
 
-      fetch("https://noteify.duckdns.org/notes/create/confirm", {
+      fetch("https://noteify.duckdns.org/notes/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ text, category, destination }),
       })
-      .then(res => res.json())
+      .then(res => {
+        console.log("[background.js] Fetch response status for CONFIRM_CATEGORY:", res.status);
+        return res.json();
+      })
       .then(data => {
-        console.log("[background.js] Category confirmation response:", data);
+        console.log("[background.js] Parsed data for CONFIRM_CATEGORY:", data);
+        // Ensure a message is always sent back
+        if (!data.message && !data.category) {
+          data.message = "Category confirmed successfully!"; // Default success message
+        }
         sendResponse(data);
       })
       .catch(err => {
         console.error("[background.js] Error confirming category:", err);
         sendResponse({ message: "Failed to confirm category. Please try again." });
+      });
+      return true; // Indicates that sendResponse will be called asynchronously
+    } else if (message.type === "GET_CATEGORIES") {
+      console.log("[background.js] Fetching categories...");
+      fetch("https://noteify.duckdns.org/notes/categories", {
+        method: "GET",
+        credentials: "include"
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("[background.js] Categories fetched:", data);
+        sendResponse(data);
+      })
+      .catch(err => {
+        console.error("[background.js] Error fetching categories:", err);
+        sendResponse({ categories: [] });
       });
       return true; // Indicates that sendResponse will be called asynchronously
     }
@@ -99,7 +129,7 @@ chrome.runtime.onInstalled.addListener(() => {
       chrome.runtime.sendMessage({
         type: "SEND_SELECTED_TEXT",
         text: info.selectionText,
-        destination: "notion",
+        destination: tab.url,
       });
     }
   });
