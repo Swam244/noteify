@@ -67,12 +67,19 @@ def notionOauth2Callback(code: str = None, db: Session = Depends(get_db),user: U
     
     else:
         encrpyted_token = encryptToken(access_token)
-        notion_id = NotionID(user_id=user.user_id, token=encrpyted_token)
+    
+        try:
+            resp = createNotionDB(access_token,db,user)
+        except Exception as e:
+            logger.error(e)
+            raise HTTPException(status_code=400, detail="Unable to Create Notion DB (token invalid)")
+    
+        notion_db_id = resp['id']
+        notion_id = NotionID(user_id=user.user_id, token=encrpyted_token,database_id=notion_db_id)
         db.add(notion_id)
     
     user.notionConnected = True
     db.commit()
-    createNotionDB(access_token,db,user)
     logger.info(f"Notion connected for user {user.email}")
     return RedirectResponse(url="/")
 

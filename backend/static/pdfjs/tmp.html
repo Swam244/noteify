@@ -1,6 +1,47 @@
 <!DOCTYPE html>
 <html>
-  <head><title>Test Multiple Embedded PDFs</title></head>
+  <head><title>Test Multiple Embedded PDFs</title>
+  <style>
+    #noteify-float-box {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  padding: 6px 10px;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  animation: fadeIn 0.2s ease;
+}
+
+#noteify-send-btn {
+  background: #000;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s ease;
+}
+
+#noteify-send-btn:hover {
+  background: #1a1a1a;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+  </style>
+  </head>
   <body>
     <h2>Public PDF 1</h2>
     <iframe src="https://www.orimi.com/pdf-test.pdf" width="100%" height="400"></iframe>
@@ -18,4 +59,11 @@
     <embed src="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
            type="application/pdf">
   </body>
+  <div id="noteify-float-box">
+    <button id="noteify-send-btn">
+      <img src="notion-icon.svg" alt="Notion" />
+      Send to Notion
+    </button>
+  </div>
+  
 </html>

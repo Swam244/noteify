@@ -37,6 +37,7 @@ class preferenceData(BaseModel):
 
 class Notes(BaseModel):
     text : str
+    destination : str
 
 class Category(BaseModel):
     category : str
@@ -44,3 +45,4 @@ class Category(BaseModel):
 class CategoryNotes(BaseModel):
     category : str
     text : str
+    destination : str

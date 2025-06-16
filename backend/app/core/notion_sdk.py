@@ -6,8 +6,56 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.db.models import NotionPage, UserAuth
 
-
 logger = logging.getLogger(__name__)
+
+
+def createCategoryPageNotion(access_token: str, database_id: str, title: str, db : Session, user : UserAuth) -> dict:
+    try:
+        notion = Client(auth=access_token)
+
+        response = notion.pages.create(
+            parent={"database_id": database_id},
+            properties={
+                "Name": {
+                    "title": [
+                        {
+                            "type": "text",
+                            "text": {"content": title}
+                        }
+                    ]
+                }
+            }
+        )    
+        page = NotionPage(
+            user_id = user.user_id,
+            title=title,
+            notion_page_id=response.get("id"),
+            notion_page_url=response.get("url"),
+            notion_database_id=database_id
+        )
+        db.add(page)
+        db.commit()
+        db.refresh(page) 
+        logger.info(f"Created new Notion page: title={title}, id={response.get('id')}")
+        return page
+    
+    except APIResponseError as api_err:
+        logger.error(f"Notion API error: {api_err.code}") 
+        raise HTTPException(
+            status_code=api_err.code if isinstance(api_err.code, int) else 400,
+            detail=f"Notion API error: {api_err}"
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create page in Notion database: {str(e)}"
+        )
+
+
+
+
+
 
 
 def createNotionPage(access_token: str,user : UserAuth ,db: Session , isDefault : bool = False, title: str = "NoteifyNotes"):
@@ -83,6 +131,10 @@ def createNotionPage(access_token: str,user : UserAuth ,db: Session , isDefault 
 
 
 
+
+
+
+
 def createNotionDB(access_token: str, db : Session, user : UserAuth):
     parent_root_page_id = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == "NoteifyNotes").first()
 
@@ -145,6 +197,55 @@ def createNotionDB(access_token: str, db : Session, user : UserAuth):
 
 
 
-# need to think about category creation (can do a tree like structure)
-# need to create endpoints to fetch a particular block and full page
-# need to create endpoint to update the content inside a block.
+
+
+
+
+def createNotionBlock(token: str, parent_block_id: str, text: str, source_url: str):
+    from notion_client import Client
+
+    notion = Client(auth=token)
+
+    # Build the inline content
+    rich_text = [
+        {
+            "type": "text",
+            "text": {
+                "content": text + " "
+            }
+        }
+    ]
+
+    if source_url:
+        rich_text.append({
+            "type": "text",
+            "text": {
+                "content": "[source]",
+                "link": {
+                    "url": source_url
+                }
+            },
+            "annotations": {
+                "italic": True
+            }
+        })
+
+    # Create a single callout block with both note and reference
+    children = [
+        {
+            "object": "block",
+            "type": "callout",
+            "callout": {
+                "icon": {"type": "emoji", "emoji": "🟢"},
+                "rich_text": rich_text
+            }
+        }
+    ]
+
+    # Append to Notion
+    response = notion.blocks.children.append(
+        block_id=parent_block_id,
+        children=children
+    )
+
+    return response['results'][0]['id']
