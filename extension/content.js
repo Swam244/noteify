@@ -155,44 +155,61 @@ function showFloatingUI(text, rect) {
   floatingDiv.style.top = `${rect.bottom + window.scrollY + 10}px`;
   floatingDiv.style.left = `${rect.left + window.scrollX}px`;
   floatingDiv.style.zIndex = 999999;
-  floatingDiv.style.backdropFilter = "blur(12px)";
-  floatingDiv.style.background = "rgba(30, 32, 40, 0.85)";
-  floatingDiv.style.color = "#E2E8F0";
-  floatingDiv.style.border = "1px solid rgba(255, 255, 255, 0.12)";
-  floatingDiv.style.borderRadius = "12px";
-  floatingDiv.style.padding = "10px 14px";
+  floatingDiv.style.backdropFilter = "blur(8px)";
+  floatingDiv.style.background = "rgba(45, 55, 72, 0.95)";
+  floatingDiv.style.color = "#A5F3FC";
+  floatingDiv.style.border = "1px solid rgba(255, 255, 255, 0.08)";
+  floatingDiv.style.borderRadius = "8px";
+  floatingDiv.style.padding = "8px 12px";
   floatingDiv.style.display = "flex";
   floatingDiv.style.alignItems = "center";
-  floatingDiv.style.gap = "10px";
+  floatingDiv.style.gap = "8px";
   floatingDiv.style.fontFamily = "'Segoe UI', 'Roboto', sans-serif";
-  floatingDiv.style.boxShadow = "0 6px 24px rgba(0, 0, 0, 0.35)";
+  floatingDiv.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.25)";
   floatingDiv.style.opacity = 0;
-  floatingDiv.style.transition = "opacity 0.3s ease";
-
-  // Destination is always Notion now, so dropdown removed.
+  floatingDiv.style.transition = "opacity 0.2s ease";
+  floatingDiv.style.transform = "scale(0.95)";
+  floatingDiv.style.transformOrigin = "top left";
 
   // Send button
   const sendBtn = document.createElement("button");
-  sendBtn.textContent = "Send to Notion";
+  sendBtn.textContent = "Note to Notion";
   sendBtn.style.border = "none";
-  sendBtn.style.background = "#7B61FF";
-  sendBtn.style.color = "#F5F6FA";
-  sendBtn.style.padding = "8px 16px";
-  sendBtn.style.borderRadius = "8px";
+  sendBtn.style.background = "#4A5568";
+  sendBtn.style.color = "#A5F3FC";
+  sendBtn.style.padding = "6px 12px";
+  sendBtn.style.borderRadius = "6px";
   sendBtn.style.cursor = "pointer";
-  sendBtn.style.fontWeight = "bold";
-  sendBtn.style.transition = "background 0.3s ease, transform 0.2s ease";
-  sendBtn.style.boxShadow = "0 4px 12px rgba(123, 97, 255, 0.4)";
-  sendBtn.onmouseenter = () => sendBtn.style.transform = "scale(1.05)";
-  sendBtn.onmouseleave = () => sendBtn.style.transform = "scale(1.0)";
+  sendBtn.style.fontWeight = "500";
+  sendBtn.style.fontSize = "13px";
+  sendBtn.style.transition = "background 0.2s ease, transform 0.2s ease";
+  sendBtn.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.2)";
+  sendBtn.onmouseenter = () => {
+    sendBtn.style.background = "#2D3748";
+    sendBtn.style.transform = "scale(1.02)";
+  };
+  sendBtn.onmouseleave = () => {
+    sendBtn.style.background = "#4A5568";
+    sendBtn.style.transform = "scale(1.0)";
+  };
 
   sendBtn.addEventListener("click", async () => {
     chrome.runtime.sendMessage({
       type: "SEND_SELECTED_TEXT",
       text: text,
-      destination: "notion", // Fixed destination
+      destination: window.location.href,
     }, async (response) => {
       console.log("[content.js] Received response from background:", response);
+      
+      // Handle error responses
+      if (response && response.status === 400) {
+        console.log("[content.js] Received 400 error:", response.detail);
+        showFeedback(response.detail || "Invalid text length. Please select text between 30 and 2000 characters.");
+        removeFloatingUI();
+        window.getSelection().removeAllRanges();
+        return;
+      }
+
       if (response && response.category) {
         console.log("[content.js] Response contains category:", response.category);
         // Show category confirmation form if a category is predicted
@@ -203,21 +220,27 @@ function showFloatingUI(text, rect) {
             type: "CONFIRM_CATEGORY",
             text: text,
             category: result.category,
-            destination: "notion"
+            destination: window.location.href
           }, (confirmResponse) => {
+            console.log("[content.js] Received confirmResponse:", confirmResponse);
             if (confirmResponse && confirmResponse.message) {
               showFeedback(confirmResponse.message);
             } else {
               showFeedback("Failed to send to Notion after confirmation. Please try again.");
             }
           });
+        } else {
+          showFeedback("Category confirmation cancelled.");
         }
-      } else if (response && response.message) {
-        console.log("[content.js] Response contains message:", response.message);
+      } else if (response && response.hasOwnProperty('message')) {
+        console.log("[content.js] Response contains message property:", response.message);
         // Show general message for RAW preference or other backend messages
-        showFeedback(response.message);
+        showFeedback(response.message || "Sent successfully!");
+      } else if (response) {
+        console.log("[content.js] Generic success response (no category/message property, but response is not null/undefined).");
+        showFeedback("Sent successfully!");
       } else {
-        console.log("[content.js] Response is unexpected or empty.");
+        console.log("[content.js] Response is unexpected or empty (null/undefined/false).");
         showFeedback("Failed to send to Notion. Please try again.");
       }
       removeFloatingUI();
@@ -230,6 +253,7 @@ function showFloatingUI(text, rect) {
 
   requestAnimationFrame(() => {
     floatingDiv.style.opacity = 1;
+    floatingDiv.style.transform = "scale(1)";
   });
 }
 
@@ -266,7 +290,17 @@ function showFeedback(msg) {
     }, 2000); // visible for 2 seconds
   }
   
-function showCategoryConfirmationForm(category, text) {
+async function showCategoryConfirmationForm(category, text) {
+  // Fetch available categories through background script
+  let availableCategories = [];
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "GET_CATEGORIES" });
+    console.log("[content.js] Received categories from background:", response);
+    availableCategories = response.categories || [];
+  } catch (error) {
+    console.error("[content.js] Failed to fetch categories:", error);
+  }
+
   const formDiv = document.createElement("div");
   formDiv.style.position = "fixed";
   formDiv.style.top = "20px";
@@ -305,6 +339,38 @@ function showCategoryConfirmationForm(category, text) {
   categoryInput.style.borderRadius = "6px";
   categoryInput.style.color = "#fff";
   formDiv.appendChild(categoryInput);
+
+  if (availableCategories.length > 0) {
+    const categoriesHeading = document.createElement("p");
+    categoriesHeading.textContent = "Existing Note Pages:";
+    categoriesHeading.style.margin = "0 0 10px 0";
+    categoriesHeading.style.color = "#fff";
+    formDiv.appendChild(categoriesHeading);
+
+    const categoriesContainer = document.createElement("div");
+    categoriesContainer.style.display = "flex";
+    categoriesContainer.style.flexWrap = "wrap";
+    categoriesContainer.style.gap = "8px";
+    categoriesContainer.style.marginBottom = "15px";
+
+    availableCategories.forEach(cat => {
+      const categoryChip = document.createElement("button");
+      categoryChip.textContent = cat;
+      categoryChip.style.padding = "4px 8px";
+      categoryChip.style.background = "#4A5568";
+      categoryChip.style.color = "#fff";
+      categoryChip.style.border = "none";
+      categoryChip.style.borderRadius = "4px";
+      categoryChip.style.cursor = "pointer";
+      categoryChip.style.fontSize = "12px";
+      categoryChip.onclick = () => {
+        categoryInput.value = cat;
+      };
+      categoriesContainer.appendChild(categoryChip);
+    });
+
+    formDiv.appendChild(categoriesContainer);
+  }
 
   const buttonContainer = document.createElement("div");
   buttonContainer.style.display = "flex";

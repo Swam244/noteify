@@ -13,12 +13,17 @@
     "<all_urls>",
     "https://noteify.duckdns.org/*"
   ],
+  "icons": {
+    "16": "image16.png",
+    "48": "image48.png",
+    "128": "image128.png"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "image16.ico",
-      "48": "image48.ico",
-      "128": "image128.ico"
+      "16": "image16.png",
+      "48": "image48.png",
+      "128": "image128.png"
     }
   },
   "background": {
@@ -31,5 +36,4 @@
       "run_at": "document_start"
     }
   ]
-  
 }
