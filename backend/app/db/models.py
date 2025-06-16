@@ -37,6 +37,8 @@ class NotionID(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("userauth.user_id"), nullable=False)
     token = Column(String, nullable=False)
+    database_id = Column(String,default="DUMMY")
+
     user = relationship("UserAuth", back_populates="notionid")
 
 
@@ -49,6 +51,9 @@ class NotionPage(Base):
     notion_page_id = Column(String, nullable=False, unique=True)
     notion_page_url = Column(Text)
     notion_database_id = Column(String)    
+    notes_block_id= Column(String)   
+    references_block_id= Column(String)
+    
     created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
     updated_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'), onupdate=text('now()'))
 

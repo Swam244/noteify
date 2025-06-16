@@ -21,10 +21,6 @@ def normalizeCategoryName(name: str) -> str:
     return name.upper()  
 
 
-def getCategoryCacheKey(user_id: int):
-    return f"noteify:predicted_category:{user_id}"
-
-
 def getNotionToken(user : UserAuth,db : Session) -> str:
     id = user.user_id
     encrypted = db.query(NotionID).filter(NotionID.user_id == id).first()
