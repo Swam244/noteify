@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registration Successful - Noteify</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="/pdfjs/logobg.png" type="image/png">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #0D1117, #1E202A);
+      color: #F5F6FA;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .success-container {
+      background: rgba(16, 18, 26, 0.85);
+      border: 1px solid rgba(46, 196, 241, 0.3);
+      border-radius: 16px;
+      padding: 50px 40px;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    .success-container h1 {
+      color: #6CD97B;
+      font-size: 2.2em;
+      margin-bottom: 20px;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+    }
+
+    .success-container p {
+      font-size: 1.1em;
+      line-height: 1.6;
+      color: #A5F3FC;
+      margin-bottom: 30px;
+    }
+
+    .success-container .button {
+      background: linear-gradient(135deg, #2EC4F1, #1EB6E7);
+      border: none;
+      color: white;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none; /* For the anchor tag as a button */
+      display: inline-block;
+    }
+
+    .success-container .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(46, 196, 241, 0.3);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="success-container">
+    <h1>Account Created!</h1>
+    <p>Your Noteify account has been successfully created. You can now close this page or navigate to the login page.</p>
+    <button onclick="window.close()" class="button">Close Tab</button>
+  </div>
+</body>
+</html> 

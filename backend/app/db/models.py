@@ -51,8 +51,8 @@ class NotionPage(Base):
     notion_page_id = Column(String, nullable=False, unique=True)
     notion_page_url = Column(Text)
     notion_database_id = Column(String)    
-    notes_block_id= Column(String)   
-    references_block_id= Column(String)
+    # notes_block_id= Column(String)   
+    # references_block_id= Column(String)
     
     created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
     updated_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'), onupdate=text('now()'))
