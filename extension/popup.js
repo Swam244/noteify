@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginEmail = document.getElementById("loginEmail");
   const loginPassword = document.getElementById("loginPassword");
   const loginBtn = document.getElementById("loginBtn");
+  const signupBtn = document.getElementById("signupBtn");
   const notionMsg = document.getElementById("notionMsg");
   const notionConnectContainer = document.getElementById("notionConnectContainer");
   const connectNotionBtn = document.getElementById("connectNotionBtn");
@@ -20,7 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const categoryInput = document.getElementById("categoryInput");
   const saveCategoryBtn = document.getElementById("saveCategoryBtn");
   const mainHeader = document.getElementById("mainHeader");
-  const destinationOptions = document.getElementById("destinationOptions");
   const statusMsgSettings = document.getElementById("statusMsgSettings");
 
   let currentUser = null; // Variable to store user data
@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Toggle to settings view
   settingsToggleBtn.addEventListener("click", () => {
-    document.querySelectorAll("#loginForm, #highlightedText, #sendBtn, #logoutBtn, #refreshBtn, #settingsToggleBtn, #notionMsg, #notionConnectContainer, #mainHeader, #destinationOptions").forEach(el => {
+    document.querySelectorAll("#loginForm, #highlightedText, #sendBtn, #logoutBtn, #refreshBtn, #settingsToggleBtn, #notionMsg, #notionConnectContainer, #mainHeader").forEach(el => {
       el.style.display = "none";
     });
     statusMsg.style.display = "none";
@@ -133,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Back to main view
   backBtn.addEventListener("click", async () => {
-    document.querySelectorAll("#loginForm, #highlightedText, #sendBtn, #logoutBtn, #refreshBtn, #settingsToggleBtn, #notionMsg, #notionConnectContainer, #mainHeader, #destinationOptions").forEach(el => {
+    document.querySelectorAll("#loginForm, #highlightedText, #sendBtn, #logoutBtn, #refreshBtn, #settingsToggleBtn, #notionMsg, #notionConnectContainer, #mainHeader").forEach(el => {
       el.style.display = "";
     });
     settingsView.style.display = "none";
@@ -213,7 +213,6 @@ document.addEventListener("DOMContentLoaded", () => {
           sendBtn.style.display = "none";
           notionMsg.style.display = "none";
           settingsToggleBtn.style.display = "none";
-          destinationOptions.style.display = "none";
           mainHeader.style.display = "none";
         } else {
           console.log("checkLoginStatus: Setting up main view.");
@@ -228,7 +227,6 @@ document.addEventListener("DOMContentLoaded", () => {
             sendBtn.style.display = "none";
             statusMsg.style.display = "none";
             settingsToggleBtn.style.display = "none";
-            destinationOptions.style.display = "none";
             mainHeader.style.display = "block"; // Show main header
           } else {
             notionMsg.style.display = "none";
@@ -237,7 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
             sendBtn.style.display = "block";
             statusMsg.style.display = "block";
             settingsToggleBtn.style.display = "block";
-            destinationOptions.style.display = "block";
             mainHeader.style.display = "block"; // Show main header
           }
         }
@@ -258,7 +255,6 @@ document.addEventListener("DOMContentLoaded", () => {
         sendBtn.style.display = "none";
         notionMsg.style.display = "none";
         settingsToggleBtn.style.display = "none";
-        destinationOptions.style.display = "none";
         settingsView.style.display = "none"; // Crucial: ensure settings view is hidden if not logged in
         mainHeader.style.display = "block"; // Ensure header is shown on login page
       } else {
@@ -340,6 +336,12 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("[popup.js] Logout error:", err);
         statusMsg.textContent = "Network error during logout.";
       }
+    });
+  }
+
+  if (signupBtn) {
+    signupBtn.addEventListener("click", () => {
+      window.open("https://noteify.duckdns.org/pdfjs/signup.html", "_blank");
     });
   }
 

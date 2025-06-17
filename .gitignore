@@ -8,7 +8,8 @@ __pycache__/
 *.egg-info/
 .Python
 dist/
-
+*.pem
+*.crx
 # Virtual environment
 .venv/
 venv/

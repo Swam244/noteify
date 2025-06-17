@@ -26,6 +26,11 @@ main {
   padding: 0 18px;
 }
 
+form {
+  width: 100%;
+  max-width: 320px;
+}
+
 .input {
   background: #10121A;
   border: 1.5px solid #2EC4F1;
@@ -37,6 +42,7 @@ main {
   font-size: 1em;
   outline: none;
   transition: border 0.2s;
+  box-sizing: border-box;
 }
 .input:focus {
   border-color: #1EB6E7;
