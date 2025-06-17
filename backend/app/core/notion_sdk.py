@@ -201,51 +201,75 @@ def createNotionDB(access_token: str, db : Session, user : UserAuth):
 
 
 
-def createNotionBlock(token: str, parent_block_id: str, text: str, source_url: str):
-    from notion_client import Client
+def createNotionBlock(token: str, parent_block_id: str, text: str, source_url: str,code: bool,language :str = None):
 
     notion = Client(auth=token)
+    if not code:
 
-    # Build the inline content
-    rich_text = [
-        {
-            "type": "text",
-            "text": {
-                "content": text + " "
-            }
-        }
-    ]
-
-    if source_url:
-        rich_text.append({
-            "type": "text",
-            "text": {
-                "content": "[source]",
-                "link": {
-                    "url": source_url
+        # Build the inline content
+        rich_text = [
+            {
+                "type": "text",
+                "text": {
+                    "content": text + " "
                 }
-            },
-            "annotations": {
-                "italic": True
             }
-        })
+        ]
 
-    # Create a single callout block with both note and reference
-    children = [
-        {
+        if source_url:
+            rich_text.append({
+                "type": "text",
+                "text": {
+                    "content": "[source]",
+                    "link": {
+                        "url": source_url
+                    }
+                },
+                "annotations": {
+                    "italic": True
+                }
+            })
+
+        # Create a single callout block with both note and reference
+        children = [
+            {
+                "object": "block",
+                "type": "callout",
+                "callout": {
+                    "icon": {"type": "emoji", "emoji": "🟢"},
+                    "rich_text": rich_text
+                }
+            }
+        ]
+
+        # Append to Notion
+        response = notion.blocks.children.append(
+            block_id=parent_block_id,
+            children=children
+        )
+
+        return response['results'][0]['id']
+    
+    if code:
+        code_block = {
             "object": "block",
-            "type": "callout",
-            "callout": {
-                "icon": {"type": "emoji", "emoji": "🟢"},
-                "rich_text": rich_text
+            "type": "code",
+            "code": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": text  # text includes inline comments
+                        }
+                    }
+                ],
+                "language": language  # You can make this dynamic if needed
             }
         }
-    ]
 
-    # Append to Notion
-    response = notion.blocks.children.append(
-        block_id=parent_block_id,
-        children=children
-    )
+        response = notion.blocks.children.append(
+            block_id=parent_block_id,
+            children=[code_block]
+        )
 
-    return response['results'][0]['id']
+        return response['results'][0]['id']

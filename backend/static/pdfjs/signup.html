@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Noteify Sign Up</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="icon" href="/pdfjs/logobg.png" type="image/png">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #0D1117, #1E202A);
+      color: #F5F6FA;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+
+    .top-header-branding {
+      display: none;
+    }
+
+    .logo {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 10px;
+    }
+
+    .app-name {
+      color: #2EC4F1;
+      font-size: 58px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      margin-bottom: 30px;
+      text-shadow: none;
+      transition: transform 0.2s ease-in-out;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .app-name:hover {
+      transform: scale(1.02);
+    }
+
+    .branding-header-flex {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .branding-header-flex .logo {
+      margin-bottom: 0;
+      margin-right: 20px;
+    }
+
+    .branding-header-flex .app-name {
+      margin-bottom: 0;
+    }
+
+    .split-page-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 60px;
+      align-items: center;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .branding-section {
+      text-align: center;
+      max-width: 480px;
+      padding: 20px;
+    }
+
+    .tagline {
+      color: #7DE7FF;
+      font-size: 1.25em;
+      font-weight: 500;
+      line-height: 1.6;
+      margin-bottom: 35px;
+    }
+
+    .features-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 auto;
+      text-align: left;
+      max-width: 360px;
+      width: 100%;
+    }
+
+    .features-list li {
+      background: rgba(46, 196, 241, 0.1);
+      border-left: 4px solid #2EC4F1;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      color: #F5F6FA;
+      font-size: 0.95em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+
+    .features-list li:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .features-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .features-list li::before {
+      content: '\2713';
+      color: #6CD97B;
+      font-size: 1.2em;
+    }
+
+    .container {
+      background: rgba(16, 18, 26, 0.85);
+      border: 1px solid rgba(46, 196, 241, 0.3);
+      border-radius: 16px;
+      padding: 60px 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 28px;
+      letter-spacing: 2px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      color: #F5F6FA;
+      text-shadow: 0 0 10px rgba(46, 196, 241, 0.7);
+      text-transform: uppercase;
+    }
+
+    .input {
+      background: #15171F;
+      border: 1px solid rgba(46, 196, 241, 0.4);
+      color: #F5F6FA;
+      border-radius: 10px;
+      padding: 14px 16px;
+      width: 100%;
+      font-size: 0.95em;
+      margin-bottom: 14px;
+      transition: 0.3s;
+      box-sizing: border-box;
+    }
+
+    .input:focus {
+      border-color: #2EC4F1;
+      box-shadow: 0 0 5px rgba(46, 196, 241, 0.4);
+      outline: none;
+    }
+
+    .input:hover {
+      border-color: #1EB6E7;
+      box-shadow: 0 0 8px rgba(46, 196, 241, 0.6);
+    }
+
+    .button {
+      background: linear-gradient(135deg, #2EC4F1, #1EB6E7);
+      border: none;
+      color: white;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 1em;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(46, 196, 241, 0.3);
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #A5F3FC;
+    }
+
+    .login-link a {
+      color: #2EC4F1;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s, transform 0.2s ease-in-out;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+      color: #1EB6E7;
+      transform: scale(1.05);
+    }
+
+    /* Fade-in animation for page load */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .split-page-wrapper,
+    .branding-header-flex {
+      animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    /* Adjust initial display for messages for potential fade-in/out */
+    .error-message,
+    .success-message {
+      font-size: 0.85em;
+      margin-top: -8px;
+      margin-bottom: 10px;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+      display: none; /* Ensure they are truly hidden when not active */
+    }
+
+    .error-message.show,
+    .success-message.show {
+      opacity: 1;
+      display: block; /* Show with animation */
+    }
+
+    .error-message {
+      color: #FF6B6B;
+    }
+
+    .success-message {
+      color: #6CD97B;
+    }
+
+    @media (min-width: 900px) {
+      .split-page-wrapper {
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+      }
+
+      .branding-section {
+        text-align: center;
+        padding-top: 0;
+        margin-right: 60px;
+      }
+    }
+
+    /* New styles for floating messages */
+    .floating-message {
+      position: fixed;
+      top: 20px; /* Adjust as needed */
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px 25px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-align: center;
+      max-width: 90%;
+    }
+
+    .floating-message.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .error-message-float {
+      background-color: #FF6B6B;
+      color: #FFF;
+      border: 1px solid #FF4F4F;
+    }
+
+    .success-message-float {
+      background-color: #6CD97B;
+      color: #FFF;
+      border: 1px solid #4CAF50;
+    }
+
+    /* Add styles for password match feedback */
+    .password-match-feedback {
+      font-size: 0.85em;
+      margin-top: -8px;
+      margin-bottom: 10px;
+      transition: color 0.3s ease-in-out;
+    }
+
+    .password-match {
+      color: #6CD97B;
+    }
+
+    .password-mismatch {
+      color: #FF6B6B;
+    }
+
+    .password-length-feedback {
+      font-size: 0.85em;
+      margin-top: -8px;
+      margin-bottom: 10px;
+      transition: color 0.3s ease-in-out;
+    }
+
+    .password-too-short {
+      color: #FF6B6B;
+    }
+
+    .password-valid-length {
+      color: #6CD97B;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="floatingErrorMessage" class="floating-message error-message-float"></div>
+  <div id="floatingSuccessMessage" class="floating-message success-message-float"></div>
+  <div class="split-page-wrapper">
+    <div class="branding-section">
+      <div class="branding-header-flex">
+        <img src="/pdfjs/logobg.png" alt="Noteify Logo" class="logo">
+        <div class="app-name">NOTEIFY</div>
+      </div>
+      <div class="tagline">Your ultimate note-taking companion for seamless organization and productivity.</div>
+      <ul class="features-list">
+        <li>Effortless and Intelligent Note Organization</li>
+        <li>Enrichment and summarization features available </li>
+        <li>Intelligent AI based category tagging</li>
+        <li>Cross-Device Sync</li>
+        <li>Secure Storage on Notion</li>
+      </ul>
+    </div>
+    <div class="container">
+      <h1>Create Your Account</h1>
+      <form id="signupForm">
+        <input type="text" id="username" class="input" placeholder="Username" required>
+        <div id="usernameError" class="error-message"></div>
+        <input type="email" id="email" class="input" placeholder="Email" required>
+        <div id="emailError" class="error-message"></div>
+        <input type="password" id="password" class="input" placeholder="Password (minimum 6 characters)" required>
+        <div id="passwordError" class="error-message"></div>
+        <div id="passwordLengthFeedback" class="password-length-feedback"></div>
+        <input type="password" id="confirmPassword" class="input" placeholder="Confirm Password" required>
+        <div id="confirmPasswordError" class="error-message"></div>
+        <div id="passwordMatchFeedback" class="password-match-feedback"></div>
+        <button type="submit" class="button">Sign Up</button>
+        <div id="successMessage" class="success-message"></div>
+      </form>
+      <div class="login-link">
+        Already have an account? <a href="/login">Sign In</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Add password matching validation
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirmPassword');
+    const passwordMatchFeedback = document.getElementById('passwordMatchFeedback');
+    const passwordLengthFeedback = document.getElementById('passwordLengthFeedback');
+    const MIN_PASSWORD_LENGTH = 6;
+
+    function checkPasswordLength() {
+      if (!password.value) {
+        passwordLengthFeedback.textContent = '';
+        passwordLengthFeedback.className = 'password-length-feedback';
+        return;
+      }
+
+      if (password.value.length < MIN_PASSWORD_LENGTH) {
+        passwordLengthFeedback.textContent = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+        passwordLengthFeedback.className = 'password-length-feedback password-too-short';
+      } else {
+        passwordLengthFeedback.textContent = 'Password length is valid';
+        passwordLengthFeedback.className = 'password-length-feedback password-valid-length';
+      }
+    }
+
+    function checkPasswordMatch() {
+      if (!password.value || !confirmPassword.value) {
+        passwordMatchFeedback.textContent = '';
+        passwordMatchFeedback.className = 'password-match-feedback';
+        return;
+      }
+
+      if (password.value === confirmPassword.value) {
+        passwordMatchFeedback.textContent = 'Passwords match';
+        passwordMatchFeedback.className = 'password-match-feedback password-match';
+      } else {
+        passwordMatchFeedback.textContent = 'Passwords do not match';
+        passwordMatchFeedback.className = 'password-match-feedback password-mismatch';
+      }
+    }
+
+    password.addEventListener('input', () => {
+      checkPasswordLength();
+      checkPasswordMatch();
+    });
+    confirmPassword.addEventListener('input', checkPasswordMatch);
+
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Hide all existing error/success messages, including floating ones
+      document.querySelectorAll('.error-message').forEach(el => {
+        el.classList.remove('show');
+        el.style.display = 'none';
+      });
+      document.getElementById('successMessage').classList.remove('show');
+      document.getElementById('successMessage').style.display = 'none';
+
+      document.getElementById('floatingErrorMessage').classList.remove('show');
+      document.getElementById('floatingErrorMessage').textContent = '';
+      document.getElementById('floatingSuccessMessage').classList.remove('show');
+      document.getElementById('floatingSuccessMessage').textContent = '';
+
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      // Password length validation
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        const errorMessage = `Password must be at least ${MIN_PASSWORD_LENGTH} characters long`;
+        document.getElementById('floatingErrorMessage').textContent = errorMessage;
+        document.getElementById('floatingErrorMessage').classList.add('show');
+        setTimeout(() => document.getElementById('floatingErrorMessage').classList.remove('show'), 5000);
+        return;
+      }
+
+      // Basic validation
+      if (password !== confirmPassword) {
+        const errorMessage = 'Passwords do not match';
+        document.getElementById('floatingErrorMessage').textContent = errorMessage;
+        document.getElementById('floatingErrorMessage').classList.add('show');
+        setTimeout(() => document.getElementById('floatingErrorMessage').classList.remove('show'), 5000);
+        return;
+      }
+
+      try {
+        const response = await fetch('/users/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const successMessage = 'Account created successfully! Redirecting...';
+          document.getElementById('floatingSuccessMessage').textContent = successMessage;
+          document.getElementById('floatingSuccessMessage').classList.add('show');
+          setTimeout(() => {
+            document.getElementById('floatingSuccessMessage').classList.remove('show');
+            window.location.href = '/pdfjs/registration_success.html'; /* Redirect to the new success page */
+          }, 2000);
+        } else {
+          const errorMessage = data.detail || 'An unexpected error occurred. Please try again.';
+          document.getElementById('floatingErrorMessage').textContent = errorMessage;
+          document.getElementById('floatingErrorMessage').classList.add('show');
+          setTimeout(() => document.getElementById('floatingErrorMessage').classList.remove('show'), 5000);
+        }
+      } catch (error) {
+        const errorMessage = 'A network error occurred. Please check your connection and try again.';
+        document.getElementById('floatingErrorMessage').textContent = errorMessage;
+        document.getElementById('floatingErrorMessage').classList.add('show');
+        setTimeout(() => document.getElementById('floatingErrorMessage').classList.remove('show'), 5000);
+      }
+    });
+  </script>
+</body>
+</html>

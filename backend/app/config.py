@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     QDRANT_API_KEY : str
 
     GROQ_API_KEY : str
+    GROQ_MODEL : str
 
     COHERE_API_KEY : str
 

@@ -8,7 +8,7 @@ from app.utils import Autherize,normalizeCategoryName, getNotionToken
 from app.db.schemas import *
 from app.config import settings
 import logging
-from app.core.groqClient import categorize_note
+from app.core.groqClient import categorize_note,enrich_note,handleCode
 from app.core.notion_sdk import createNotionPage,createCategoryPageNotion,createNotionBlock
 import json
 from app.core.qdrantClient import saveHighlightData,similarityDataSearch,qdrant_client,similaritySearchCategory
@@ -72,20 +72,21 @@ def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
         "text": data.text,
         "categories": category_json
     }
+    try:
+        mx_score = 0
+        for category in category_json:
+            if category_json[category] > mx_score:
+                mx_score = category_json[category]
+                category_found = category
 
-    mx_score = 0
-    for category in category_json:
-        if category_json[category] > mx_score:
-            mx_score = category_json[category]
-            category_found = category
-
-    
-    return JSONResponse(
-        {
-            "category":category_found
-        }
-    ,status_code=status.HTTP_200_OK)
-
+        
+        return JSONResponse(
+            {
+                "category":category_found
+            }
+        ,status_code=status.HTTP_200_OK)
+    except Exception as e:
+        return e
 
 
 
@@ -139,6 +140,17 @@ def createNotesRaw(data : Notes, user : UserAuth = Depends(Autherize),db : Sessi
     logger.info("Trying to get user preference")
     preference = user.preference.value
     logger.info(f"Found preference for user {user.user_id} to be {preference}")
+
+    if len(data.text) < 30:
+        return JSONResponse({
+            "detail":"Highlighted text too short to be noteworthy."
+        },status_code=status.HTTP_400_BAD_REQUEST)
+
+    if len(data.text) > 2000:
+        return JSONResponse({
+            "detail":"Text too long (NOTION DOESNT SUPPORT ADDING TOO LONG SENTENCES)"
+        },status_code=status.HTTP_400_BAD_REQUEST)
+
     
     token = getNotionToken(user,db)
 
@@ -174,8 +186,92 @@ def createNotesRaw(data : Notes, user : UserAuth = Depends(Autherize),db : Sessi
 
 
 @router.post("/create")
-def createNotes(data : CategoryNotes, user : UserAuth = Depends(Autherize),db : Session = Depends(get_db)):
+def createNotesCategorize(data : CategoryNotes, user : UserAuth = Depends(Autherize),db : Session = Depends(get_db)):
     
+    logger.info("Trying to get user preference")
+    preference = user.preference.value
+    logger.info(f"Found preference for user {user.user_id} to be {preference}")
+    
+    token = getNotionToken(user,db)
+    database_id = db.query(NotionID).filter(NotionID.user_id == user.user_id).first().database_id
+    
+    category = normalizeCategoryName(data.category)
+    
+    exist = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
+    page_id = None
+    
+    code = data.checked
+
+    if not exist:
+        try:
+            logger.info(f"Page Not found , Creating new page with title {category}")
+            response = createCategoryPageNotion(token,database_id,category,db,user)
+
+            page_id = response.notion_page_id
+            cat = UserCategories(user_id = user.user_id, category_name=category)
+            
+            db.add(cat)
+            db.commit()
+        except Exception as e:
+            return e
+    
+
+    if not page_id:
+        logger.info(f"Page found of category {category} for user {user.user_id}, extracting page_id")
+        info = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
+        page_id = info.notion_page_id
+
+
+    logger.info(f"Page ID found : {page_id}")
+    text = data.text
+    if code:
+        logger.info("Code detection requested, calling handleCode")
+        code_res = handleCode(data.text)
+        is_real_code = code_res['code']
+        logger.info(f"Code detection result: is_real_code={is_real_code}")
+
+        if is_real_code:
+            logger.info("Real code detected, processing code block")
+            code_text = code_res['code_content']
+            code_language = code_res['code_language']
+            logger.info(f"Code language detected: {code_language}")
+            try:
+                resp = createNotionBlock(token,page_id,code_text,str(data.destination),True,code_language)
+                logger.info("Successfully created code block in Notion")
+            except Exception as e:
+                logger.error(f"Failed to create code block in Notion: {str(e)}")
+                raise HTTPException(500,detail=e)
+            return JSONResponse(
+                {
+                    "message":"Noted to Notion",
+                    "category":data.category
+                },status_code=status.HTTP_200_OK
+            )
+        
+        logger.info("No real code detected, using enriched text")
+        text = code_res['enriched_text']
+
+    logger.info("Creating text block in Notion")
+    try:
+        resp = createNotionBlock(token,page_id,text,str(data.destination),False)
+        logger.info("Successfully created text block in Notion")
+    except Exception as e:
+        logger.error(f"Failed to create text block in Notion: {str(e)}")
+        raise HTTPException(500,detail=e)
+        
+    return JSONResponse(
+            {
+                "message":"Noted to Notion",
+                "category":data.category
+            },status_code=status.HTTP_200_OK
+        )
+    
+
+
+
+@router.post("/create/enriched")
+def createNotesEnrich(data : CategoryEnrich, user : UserAuth = Depends(Autherize),db : Session = Depends(get_db)):
+
     logger.info("Trying to get user preference")
     preference = user.preference.value
     logger.info(f"Found preference for user {user.user_id} to be {preference}")
@@ -194,10 +290,6 @@ def createNotes(data : CategoryNotes, user : UserAuth = Depends(Autherize),db : 
             response = createCategoryPageNotion(token,database_id,category,db,user)
 
             page_id = response.notion_page_id
-            ref_id = response.references_block_id
-            note_block_id = response.notes_block_id
-
-            
 
             cat = UserCategories(user_id = user.user_id, category_name=category)
             
@@ -211,21 +303,17 @@ def createNotes(data : CategoryNotes, user : UserAuth = Depends(Autherize),db : 
         logger.info(f"Page found of category {category} for user {user.user_id}, extracting page_id")
         info = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
         page_id = info.notion_page_id
-        ref_id = info.references_block_id
-        note_block_id = info.notes_block_id
 
 
-    logger.info(f"ID's found : {page_id} {ref_id} {note_block_id}")
+    logger.info(f"Page ID found : {page_id}")
 
-    if preference == Preferences.CATEGORIZED_AND_RAW.value:
+    if preference == Preferences.CATEGORIZED_AND_ENRICHED.value:
+        
+        enrichment_option = data.enrichment
+        enriched_text = enrich_note(data.text,enrichment_option)
         try:
-            # print(token)
-            # print(note_block_id)
-            # print(ref_id)
-            # print(data.text)
-            # print(data.destination)
-            resp = createNotionBlock(token,page_id,data.text,str(data.destination))
-            # print(resp)
+            resp = createNotionBlock(token,page_id,enriched_text,str(data.destination))
+            print(resp)
         except Exception as e:
             raise HTTPException(500,detail=e)
         
@@ -235,16 +323,3 @@ def createNotes(data : CategoryNotes, user : UserAuth = Depends(Autherize),db : 
                 "category":data.category
             },status_code=status.HTTP_200_OK
         )
-    
-    if preference == Preferences.CATEGORIZED_AND_ENRICHED.value:
-        
-        return JSONResponse(
-            {
-                "message":"Noted to Notion",
-                "category":data.category
-            },status_code=status.HTTP_200_OK
-        )
-    
-
-
-

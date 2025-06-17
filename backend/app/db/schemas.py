@@ -42,7 +42,10 @@ class Notes(BaseModel):
 class Category(BaseModel):
     category : str
 
-class CategoryNotes(BaseModel):
-    category : str
+class CategoryNotes(Category):
     text : str
     destination : str
+    checked : bool
+
+class CategoryEnrich(CategoryNotes):
+    enrichment : str
