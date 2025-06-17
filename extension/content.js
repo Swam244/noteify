@@ -197,7 +197,7 @@ function showFloatingUI(text, rect) {
     chrome.runtime.sendMessage({
       type: "SEND_SELECTED_TEXT",
       text: text,
-      destination: window.location.href,
+      destination: window.location.href
     }, async (response) => {
       console.log("[content.js] Received response from background:", response);
       
@@ -220,7 +220,9 @@ function showFloatingUI(text, rect) {
             type: "CONFIRM_CATEGORY",
             text: text,
             category: result.category,
-            destination: window.location.href
+            destination: window.location.href,
+            enrichment: result.enrichment,
+            checked: result.checked
           }, (confirmResponse) => {
             console.log("[content.js] Received confirmResponse:", confirmResponse);
             if (confirmResponse && confirmResponse.message) {
@@ -291,6 +293,16 @@ function showFeedback(msg) {
   }
   
 async function showCategoryConfirmationForm(category, text) {
+  // Get user preference
+  let userPreference = 'RAW';
+  try {
+    const prefResponse = await chrome.runtime.sendMessage({ type: "GET_USER_PREFERENCE" });
+    userPreference = prefResponse.preference;
+    console.log("[content.js] User preference:", userPreference);
+  } catch (error) {
+    console.error("[content.js] Failed to fetch user preference:", error);
+  }
+
   // Fetch available categories through background script
   let availableCategories = [];
   try {
@@ -340,6 +352,54 @@ async function showCategoryConfirmationForm(category, text) {
   categoryInput.style.color = "#fff";
   formDiv.appendChild(categoryInput);
 
+  // Add enrichment options if preference is CATEGORIZED_AND_ENRICHED
+  let selectedEnrichment = null;
+  if (userPreference === 'CATEGORIZED_AND_ENRICHED') {
+    const enrichmentHeading = document.createElement("p");
+    enrichmentHeading.textContent = "Choose Enrichment:";
+    enrichmentHeading.style.margin = "0 0 10px 0";
+    enrichmentHeading.style.color = "#fff";
+    formDiv.appendChild(enrichmentHeading);
+
+    const enrichmentOptions = [
+      { id: 'definitions', label: 'Insert definitions of terms' },
+      { id: 'grammar', label: 'Only correct grammatical errors' },
+      { id: 'summarize', label: 'Summarize the selected text' },
+      { id: 'examples',label: "keep text raw and add examples"}
+    ];
+
+    const enrichmentContainer = document.createElement("div");
+    enrichmentContainer.style.marginBottom = "15px";
+
+    enrichmentOptions.forEach(option => {
+      const optionDiv = document.createElement("div");
+      optionDiv.style.marginBottom = "8px";
+
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.id = option.id;
+      radio.name = "enrichment";
+      radio.value = option.id;
+      radio.style.marginRight = "8px";
+
+      const label = document.createElement("label");
+      label.htmlFor = option.id;
+      label.textContent = option.label;
+      label.style.color = "#fff";
+      label.style.fontSize = "14px";
+
+      radio.onchange = () => {
+        selectedEnrichment = option.id;
+      };
+
+      optionDiv.appendChild(radio);
+      optionDiv.appendChild(label);
+      enrichmentContainer.appendChild(optionDiv);
+    });
+
+    formDiv.appendChild(enrichmentContainer);
+  }
+
   if (availableCategories.length > 0) {
     const categoriesHeading = document.createElement("p");
     categoriesHeading.textContent = "Existing Note Pages:";
@@ -371,6 +431,34 @@ async function showCategoryConfirmationForm(category, text) {
 
     formDiv.appendChild(categoriesContainer);
   }
+
+  // Add check mark toggle
+  let checked = false;
+  const checkContainer = document.createElement("div");
+  checkContainer.style.display = "flex";
+  checkContainer.style.alignItems = "center";
+  checkContainer.style.marginBottom = "15px";
+
+  const checkInput = document.createElement("input");
+  checkInput.type = "checkbox";
+  checkInput.id = "noteify-checkmark";
+  checkInput.style.marginRight = "8px";
+  checkInput.style.width = "18px";
+  checkInput.style.height = "18px";
+
+  checkInput.onchange = () => {
+    checked = checkInput.checked;
+  };
+
+  const checkLabel = document.createElement("label");
+  checkLabel.htmlFor = "noteify-checkmark";
+  checkLabel.textContent = "Pure Code";
+  checkLabel.style.color = "#A5F3FC";
+  checkLabel.style.fontSize = "14px";
+
+  checkContainer.appendChild(checkInput);
+  checkContainer.appendChild(checkLabel);
+  formDiv.appendChild(checkContainer);
 
   const buttonContainer = document.createElement("div");
   buttonContainer.style.display = "flex";
@@ -404,7 +492,12 @@ async function showCategoryConfirmationForm(category, text) {
   return new Promise((resolve) => {
     confirmBtn.onclick = () => {
       formDiv.remove();
-      resolve({ confirmed: true, category: categoryInput.value });
+      resolve({ 
+        confirmed: true, 
+        category: categoryInput.value,
+        enrichment: selectedEnrichment,
+        checked: checked
+      });
     };
 
     cancelBtn.onclick = () => {

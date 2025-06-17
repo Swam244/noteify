@@ -12,7 +12,7 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log("[background.js] Message received:", message);
   
     if (message.type === "SEND_SELECTED_TEXT") {
-      const { text, destination } = message;
+      const { text, destination, checked } = message;
       console.log("[background.js] Sending to backend:", { text, destination });
   
       // Get user data which includes preference
@@ -40,7 +40,7 @@ chrome.runtime.onInstalled.addListener(() => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ text, destination }),
+          body: JSON.stringify({ text, destination, ...(typeof checked !== 'undefined' ? { checked } : {}) }),
         });
       })
       .then(res => {
@@ -78,23 +78,49 @@ chrome.runtime.onInstalled.addListener(() => {
       });
       return true; // Indicates that sendResponse will be called asynchronously
     } else if (message.type === "CONFIRM_CATEGORY") {
-      const { text, category, destination } = message;
-      console.log("[background.js] Confirming category:", { text, category, destination });
+      const { text, category, destination, enrichment, checked } = message;
+      console.log("[background.js] Confirming category:", { text, category, destination, enrichment });
 
-      fetch("https://noteify.duckdns.org/notes/create", {
+      // Get user preference first
+      fetch("https://noteify.duckdns.org/users/login", {
+        method: "GET",
+        credentials: "include"
+      })
+      .then(res => res.json())
+      .then(userData => {
+        const preference = userData.preference;
+        console.log("[background.js] User preference for confirmation:", preference);
+        
+        // Choose endpoint based on preference and enrichment
+        let endpoint;
+        if (preference === 'CATEGORIZED_AND_ENRICHED' && enrichment) {
+          endpoint = "https://noteify.duckdns.org/notes/create/enriched";
+        } else {
+          endpoint = "https://noteify.duckdns.org/notes/create";
+        }
+
+        // Send the data to appropriate endpoint
+        return fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ text, category, destination }),
+          body: JSON.stringify({ 
+            text, 
+            category, 
+            destination,
+            ...(enrichment && { enrichment }),
+            ...(typeof checked !== 'undefined' ? { checked } : {})
+          }),
+        });
       })
       .then(res => {
         console.log("[background.js] Fetch response status for CONFIRM_CATEGORY:", res.status);
-        return res.json();
+        return res.json().then(data => ({ status: res.status, ...data }));
       })
       .then(data => {
         console.log("[background.js] Parsed data for CONFIRM_CATEGORY:", data);
         // Ensure a message is always sent back
-        if (!data.message && !data.category) {
+        if (!data.message && !data.category && !data.detail) {
           data.message = "Category confirmed successfully!"; // Default success message
         }
         sendResponse(data);
@@ -118,6 +144,22 @@ chrome.runtime.onInstalled.addListener(() => {
       .catch(err => {
         console.error("[background.js] Error fetching categories:", err);
         sendResponse({ categories: [] });
+      });
+      return true; // Indicates that sendResponse will be called asynchronously
+    } else if (message.type === "GET_USER_PREFERENCE") {
+      console.log("[background.js] Getting user preference...");
+      fetch("https://noteify.duckdns.org/users/login", {
+        method: "GET",
+        credentials: "include"
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("[background.js] User preference fetched:", data.preference);
+        sendResponse({ preference: data.preference });
+      })
+      .catch(err => {
+        console.error("[background.js] Error fetching user preference:", err);
+        sendResponse({ preference: 'RAW' });
       });
       return true; // Indicates that sendResponse will be called asynchronously
     }
