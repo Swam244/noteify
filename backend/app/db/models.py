@@ -30,6 +30,7 @@ class UserAuth(Base):
     notion_pages = relationship("NotionPage", back_populates="user", cascade="all, delete")
     notion_blocks = relationship("NotionBlock", back_populates="user", cascade="all, delete")
     user_categories = relationship("UserCategories",back_populates="user",cascade="all, delete")
+    images = relationship("UserImages", back_populates="user", cascade="all, delete")
 
 
 class NotionID(Base):
@@ -67,7 +68,7 @@ class NotionBlock(Base):
     __tablename__ = "notion_blocks"
     __table_args__ = (UniqueConstraint("notion_block_id"),)
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer ,primary_key=True,autoincrement=True,nullable=False)
     notion_block_id = Column(String, nullable=False, unique=True)
     notion_page_id = Column(String, ForeignKey("notion_pages.notion_page_id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("userauth.user_id", ondelete="CASCADE"), nullable=False)
@@ -76,6 +77,7 @@ class NotionBlock(Base):
     source_url = Column(Text)
     is_active = Column(Boolean, default=True)
     qdrant_point_id = Column(String, nullable=False, unique=True)
+
     created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
     updated_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'), onupdate=text('now()'))
 
@@ -92,3 +94,15 @@ class UserCategories(Base):
     category_name = Column(String,nullable=False) # always insert in uppercase letters to avoid same categories.
 
     user = relationship("UserAuth", back_populates="user_categories")
+
+
+class UserImages(Base):
+    __tablename__ = "user_images"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("userauth.user_id", ondelete="CASCADE"), nullable=False)
+    image_id = Column(String, nullable=False, unique=True)  
+    appwrite_link = Column(String,nullable=False)
+    uploaded_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
+
+    user = relationship("UserAuth", back_populates="images")

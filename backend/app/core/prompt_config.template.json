@@ -5,5 +5,9 @@
     
     "ENRICHMENT_SUMMARIZE_PROMPT": "",
     
-    "ENRICHMENT_EXAMPLES_PROMPT": ""
+    "ENRICHMENT_EXAMPLES_PROMPT": "",
+    
+    "CODE":"",
+
+    "CATEGORY_PREDICTION":""
 } 
