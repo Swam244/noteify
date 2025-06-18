@@ -452,7 +452,7 @@ async function showCategoryConfirmationForm(category, text) {
 
   const checkLabel = document.createElement("label");
   checkLabel.htmlFor = "noteify-checkmark";
-  checkLabel.textContent = "Pure Code";
+  checkLabel.textContent = "Code";
   checkLabel.style.color = "#A5F3FC";
   checkLabel.style.fontSize = "14px";
 
@@ -548,10 +548,274 @@ document.addEventListener("mouseup", async () => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === "GET_HIGHLIGHTED_TEXT") {
+  console.log("[content.js] Received message:", msg);
+  
+  if (msg === "START_SCREENSHOT_SELECTION") {
+    console.log("[content.js] Starting screenshot selection");
+    startAreaSelection();
+  } else if (msg.type === "GET_HIGHLIGHTED_TEXT") {
     sendResponse({ text: lastSelectedText });
   } else if (msg.type === "UPDATE_NOTION_CONNECTION_STATUS") {
     notionConnected = msg.notionConnected;
-    // console.log("[content.js] Notion connection status updated by popup:", notionConnected);
+  } else if (msg.type === "CROP_AND_UPLOAD" && msg.dataUrl) {
+    console.log("[content.js] Cropping and uploading screenshot...");
+    cropAndUpload(msg.dataUrl, msg.coords);
   }
 });
+
+function startAreaSelection() {
+  console.log("[content.js] Creating area selection overlay");
+  const overlay = document.createElement('div');
+  overlay.style = `
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.1); z-index: 999999;
+    cursor: crosshair;
+  `;
+  document.body.appendChild(overlay);
+
+  let startX, startY, rect;
+
+  overlay.addEventListener('mousedown', e => {
+    startX = e.clientX;
+    startY = e.clientY;
+
+    rect = document.createElement('div');
+    rect.style = `
+      position: fixed; border: 2px dashed #333; background: rgba(0,0,0,0.2);
+      left: ${startX}px; top: ${startY}px; z-index: 1000000;
+    `;
+    overlay.appendChild(rect);
+
+    const onMouseMove = e => {
+      rect.style.width = Math.abs(e.clientX - startX) + 'px';
+      rect.style.height = Math.abs(e.clientY - startY) + 'px';
+      rect.style.left = Math.min(e.clientX, startX) + 'px';
+      rect.style.top = Math.min(e.clientY, startY) + 'px';
+    };
+
+    const onMouseUp = e => {
+      const endX = e.clientX;
+      const endY = e.clientY;
+
+      overlay.remove();
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+
+      console.log("[content.js] Selection completed, sending to background:", {
+        x: Math.min(startX, endX),
+        y: Math.min(startY, endY),
+        width: Math.abs(endX - startX),
+        height: Math.abs(endY - startY)
+      });
+
+      chrome.runtime.sendMessage({
+        type: 'SELECTION_DONE',
+        coords: {
+          x: Math.min(startX, endX),
+          y: Math.min(startY, endY),
+          width: Math.abs(endX - startX),
+          height: Math.abs(endY - startY)
+        }
+      });
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+}
+
+async function promptCategoryForScreenshot() {
+  // Fetch available categories through background script
+  let availableCategories = [];
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "GET_CATEGORIES" });
+    availableCategories = response.categories || [];
+  } catch (error) {
+    console.error("[content.js] Failed to fetch categories for screenshot:", error);
+  }
+
+  const formDiv = document.createElement("div");
+  formDiv.style.position = "fixed";
+  formDiv.style.top = "20px";
+  formDiv.style.left = "50%";
+  formDiv.style.transform = "translateX(-50%)";
+  formDiv.style.background = "#1F2937";
+  formDiv.style.color = "#A5F3FC";
+  formDiv.style.padding = "20px";
+  formDiv.style.borderRadius = "12px";
+  formDiv.style.boxShadow = "0 4px 20px rgba(0, 0, 0, 0.35)";
+  formDiv.style.fontSize = "15px";
+  formDiv.style.fontWeight = "500";
+  formDiv.style.fontFamily = "'Segoe UI', sans-serif";
+  formDiv.style.zIndex = "999999";
+  formDiv.style.width = "300px";
+
+  const heading = document.createElement("h3");
+  heading.textContent = "Select Category for Screenshot";
+  heading.style.margin = "0 0 15px 0";
+  heading.style.color = "#fff";
+  formDiv.appendChild(heading);
+
+  const categoryInput = document.createElement("input");
+  categoryInput.type = "text";
+  categoryInput.placeholder = "Enter or select category";
+  categoryInput.style.width = "100%";
+  categoryInput.style.padding = "8px";
+  categoryInput.style.marginBottom = "15px";
+  categoryInput.style.background = "#2D3748";
+  categoryInput.style.border = "1px solid #4A5568";
+  categoryInput.style.borderRadius = "6px";
+  categoryInput.style.color = "#fff";
+  formDiv.appendChild(categoryInput);
+
+  if (availableCategories.length > 0) {
+    const categoriesHeading = document.createElement("p");
+    categoriesHeading.textContent = "Existing Note Pages:";
+    categoriesHeading.style.margin = "0 0 10px 0";
+    categoriesHeading.style.color = "#fff";
+    formDiv.appendChild(categoriesHeading);
+
+    const categoriesContainer = document.createElement("div");
+    categoriesContainer.style.display = "flex";
+    categoriesContainer.style.flexWrap = "wrap";
+    categoriesContainer.style.gap = "8px";
+    categoriesContainer.style.marginBottom = "15px";
+
+    availableCategories.forEach(cat => {
+      const categoryChip = document.createElement("button");
+      categoryChip.textContent = cat;
+      categoryChip.style.padding = "4px 8px";
+      categoryChip.style.background = "#4A5568";
+      categoryChip.style.color = "#fff";
+      categoryChip.style.border = "none";
+      categoryChip.style.borderRadius = "4px";
+      categoryChip.style.cursor = "pointer";
+      categoryChip.style.fontSize = "12px";
+      categoryChip.onclick = () => {
+        categoryInput.value = cat;
+      };
+      categoriesContainer.appendChild(categoryChip);
+    });
+
+    formDiv.appendChild(categoriesContainer);
+  }
+
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.display = "flex";
+  buttonContainer.style.gap = "10px";
+  buttonContainer.style.justifyContent = "flex-end";
+
+  const confirmBtn = document.createElement("button");
+  confirmBtn.textContent = "Confirm";
+  confirmBtn.style.padding = "8px 16px";
+  confirmBtn.style.background = "#7B61FF";
+  confirmBtn.style.color = "#fff";
+  confirmBtn.style.border = "none";
+  confirmBtn.style.borderRadius = "6px";
+  confirmBtn.style.cursor = "pointer";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.style.padding = "8px 16px";
+  cancelBtn.style.background = "#4A5568";
+  cancelBtn.style.color = "#fff";
+  cancelBtn.style.border = "none";
+  cancelBtn.style.borderRadius = "6px";
+  cancelBtn.style.cursor = "pointer";
+
+  buttonContainer.appendChild(cancelBtn);
+  buttonContainer.appendChild(confirmBtn);
+  formDiv.appendChild(buttonContainer);
+
+  document.body.appendChild(formDiv);
+
+  return new Promise((resolve) => {
+    confirmBtn.onclick = () => {
+      const selectedCategory = categoryInput.value.trim();
+      formDiv.remove();
+      if (selectedCategory) {
+        resolve({ confirmed: true, category: selectedCategory });
+      } else {
+        resolve({ confirmed: false });
+      }
+    };
+    cancelBtn.onclick = () => {
+      formDiv.remove();
+      resolve({ confirmed: false });
+    };
+  });
+}
+
+async function cropAndUpload(dataUrl, coords) {
+  // Prompt for category before uploading screenshot
+  const categoryResult = await promptCategoryForScreenshot();
+  if (!categoryResult.confirmed) {
+    showFloatingError("Screenshot upload cancelled.");
+    return;
+  }
+  const selectedCategory = categoryResult.category;
+
+  const { x, y, width, height } = coords;
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, x, y, width, height, 0, 0, width, height);
+    canvas.toBlob(blob => {
+      const reader = new FileReader();
+      reader.onloadend = function() {
+        const base64data = reader.result;
+        chrome.runtime.sendMessage({
+          type: "UPLOAD_SCREENSHOT",
+          image: base64data,
+          category: selectedCategory
+        }, (response) => {
+          if (response && response.status === 401) {
+            showFloatingError("Unauthorized. Please log in again.");
+          } else if (response && response.success) {
+            showFeedback("Screenshot uploaded!");
+          } else {
+            showFloatingError("Screenshot upload failed.");
+          }
+        });
+      };
+      reader.readAsDataURL(blob);
+    }, "image/png");
+  };
+  img.src = dataUrl;
+}
+
+function showFloatingError(msg) {
+  const div = document.createElement("div");
+  div.textContent = msg;
+  div.style.position = "fixed";
+  div.style.top = "20px";
+  div.style.left = "50%";
+  div.style.transform = "translateX(-50%)";
+  div.style.background = "#B91C1C";
+  div.style.color = "#fff";
+  div.style.padding = "14px 24px";
+  div.style.borderRadius = "12px";
+  div.style.boxShadow = "0 4px 20px rgba(0, 0, 0, 0.35)";
+  div.style.fontSize = "15px";
+  div.style.fontWeight = "500";
+  div.style.fontFamily = "'Segoe UI', sans-serif";
+  div.style.zIndex = 999999;
+  div.style.opacity = "0";
+  div.style.transition = "opacity 0.4s ease";
+
+  document.body.appendChild(div);
+
+  requestAnimationFrame(() => {
+    div.style.opacity = "1";
+  });
+
+  setTimeout(() => {
+    div.style.opacity = "0";
+    setTimeout(() => {
+      if (div && div.parentNode) div.remove();
+    }, 300);
+  }, 2500);
+}

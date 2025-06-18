@@ -345,6 +345,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Screenshot functionality
+  const screenshotBtn = document.getElementById("screenshotBtn");
+  if (screenshotBtn) {
+    screenshotBtn.addEventListener("click", async () => {
+      console.log("[popup.js] Screenshot button clicked");
+      try {
+        // Tell content script to start area selection
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        console.log("[popup.js] Current tab:", tab);
+        
+        if (tab && /^https?:/.test(tab.url)) {
+          console.log("[popup.js] Sending START_SCREENSHOT_SELECTION to tab:", tab.id);
+          chrome.tabs.sendMessage(tab.id, "START_SCREENSHOT_SELECTION");
+        } else {
+          console.log("[popup.js] Invalid tab URL:", tab?.url);
+          statusMsg.textContent = "Screenshot not available on this page.";
+          statusMsg.style.display = "block";
+        }
+      } catch (err) {
+        console.error("[popup.js] Screenshot error:", err);
+        statusMsg.textContent = "Failed to start screenshot.";
+        statusMsg.style.display = "block";
+      }
+    });
+  }
+
   sendBtn.addEventListener("click", async () => {
     const text = textArea.value.trim();
     const destination = document.querySelector('input[name="destination"]:checked').value;
