@@ -2,27 +2,20 @@ from fastapi import FastAPI,Request,Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.middleware import RateLimiter
 from redis.asyncio import Redis
-from app.config import settings
-from app.routers import auth,notes,notion,oauth2,pdf
-from app.db import models
+from app.routers import auth,notes,notion,oauth2,pdf,images
 from fastapi.staticfiles import StaticFiles
 from app.core.notion_sdk import createNotionDB,createNotionPage
-from app.db.database import engine
 import logging
-from app.password_utils import encryptToken,decryptToken
 from app.core.cohereClient import get_embeddings
-from app.core.groqClient import categorize_note,enrich_note
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
 from app.db.models import UserAuth,NotionID
 from app.utils import Autherize
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from app.core.qdrantClient import initDataCollection,saveHighlightData,similaritySearchCategory
 
-# models.Base.metadata.create_all(bind=engine,checkfirst=True)  # Tables are created only when they do not exist.
 
 app = FastAPI()
 
@@ -44,6 +37,7 @@ app.include_router(auth.router)
 app.include_router(oauth2.router)
 app.include_router(notes.router)
 app.include_router(pdf.router)
+app.include_router(images.router)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -93,7 +87,6 @@ def create(user : UserAuth = Depends(Autherize), db : Session = Depends(get_db))
     notionToken = db.query(NotionID).filter(NotionID.user_id == userid).first()
     print(notionToken.token)
     return createNotionDB(notionToken.token,db,user)
-    # return createNotionPage(notionToken.token,user,db,isDefault=True)
 
 
 @app.get("/add/qdrant")

@@ -2,6 +2,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
 
+    BASE_URL : str
+
     DATABASE_HOST : str
     DATABASE_USER : str
     DATABASE_NAME : str
@@ -16,9 +18,6 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL : str
     SQLALCHEMY_DATABASE_TEST_URL : str
     
-    SERVER_KEY : str
-    SSL_CERTFILE : str
-
     TOKEN_KEY : str
     
     NOTION_CLIENT_ID: str
@@ -32,6 +31,11 @@ class Settings(BaseSettings):
     GROQ_MODEL : str
 
     COHERE_API_KEY : str
+    
+    APPWRITE_SECRET : str
+    BUCKET_ID : str
+    PROJECT_ID : str
+    ENDPOINT : str
 
     class Config:
         env_file = ".env"

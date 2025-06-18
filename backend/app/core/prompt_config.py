@@ -13,5 +13,7 @@ ENRICHMENT_PROMPTS: Dict[str, str] = {
     "definitions": prompts["ENRICHMENT_DEFINITIONS_PROMPT"],
     "grammar": prompts["ENRICHMENT_GRAMMAR_PROMPT"],
     "summarize": prompts["ENRICHMENT_SUMMARIZE_PROMPT"],
-    "examples": prompts["ENRICHMENT_EXAMPLES_PROMPT"]
+    "examples": prompts["ENRICHMENT_EXAMPLES_PROMPT"],
+    "code":prompts['CODE'],
+    "category":prompts['CATEGORY_PREDICTION']
 } 

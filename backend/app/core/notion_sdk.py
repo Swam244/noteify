@@ -206,7 +206,6 @@ def createNotionBlock(token: str, parent_block_id: str, text: str, source_url: s
     notion = Client(auth=token)
     if not code:
 
-        # Build the inline content
         rich_text = [
             {
                 "type": "text",
@@ -230,7 +229,6 @@ def createNotionBlock(token: str, parent_block_id: str, text: str, source_url: s
                 }
             })
 
-        # Create a single callout block with both note and reference
         children = [
             {
                 "object": "block",
@@ -259,11 +257,11 @@ def createNotionBlock(token: str, parent_block_id: str, text: str, source_url: s
                     {
                         "type": "text",
                         "text": {
-                            "content": text  # text includes inline comments
+                            "content": text  
                         }
                     }
                 ],
-                "language": language  # You can make this dynamic if needed
+                "language": language  
             }
         }
 
@@ -273,3 +271,27 @@ def createNotionBlock(token: str, parent_block_id: str, text: str, source_url: s
         )
 
         return response['results'][0]['id']
+
+
+
+def createImageBlockNotion(token: str, parent_block_id: str, image_url: str):
+
+    notion = Client(auth=token)
+    image_url = image_url + ".png"
+    image_block = {
+        "object": "block",
+        "type": "image",
+        "image": {
+            "type": "external",
+            "external": {
+                "url": image_url
+            }
+        }
+    }
+
+    response = notion.blocks.children.append(
+        block_id=parent_block_id,
+        children=[image_block]
+    )
+
+    return response['results'][0]['id']

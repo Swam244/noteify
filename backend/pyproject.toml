@@ -26,4 +26,7 @@ dependencies = [
     "groq>=0.28.0",
     "cryptography>=45.0.4",
     "inflect>=7.5.0",
+    "python-multipart>=0.0.20",
+    "boto3>=1.38.38",
+    "appwrite>=11.0.0",
 ]

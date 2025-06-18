@@ -1,5 +1,6 @@
 # app/routers/auth.py
 from fastapi import APIRouter,Depends,Response
+from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
 from app.db.models import UserAuth
 from app.db.database import get_db
@@ -10,10 +11,12 @@ from app.config import settings
 from app.password_utils import verify_hash,generate_hash
 import logging
 from sqlalchemy.exc import DataError
+import secrets
+from redis import Redis
 
 router = APIRouter(prefix="/users",tags=['Users'])
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 @router.post("/register",status_code=status.HTTP_201_CREATED,response_model=registerResponse)
 def register(data : registerRequest ,db : Session=Depends(get_db)):

@@ -81,5 +81,5 @@ def notionOauth2Callback(code: str = None, db: Session = Depends(get_db),user: U
     user.notionConnected = True
     db.commit()
     logger.info(f"Notion connected for user {user.email}")
-    return RedirectResponse(url="/")
+    return RedirectResponse(url="/pdfjs/notion_success.html")
 
