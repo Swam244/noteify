@@ -12,7 +12,7 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log("[background.js] Message received:", message);
   
     if (message.type === "SEND_SELECTED_TEXT") {
-      const { text, destination, checked } = message;
+        const { text, destination, checked } = message;
       console.log("[background.js] Sending to backend:", { text, destination });
   
       // Get user data which includes preference
@@ -162,6 +162,65 @@ chrome.runtime.onInstalled.addListener(() => {
         sendResponse({ preference: 'RAW' });
       });
       return true; // Indicates that sendResponse will be called asynchronously
+    } else if (message.type === 'SELECTION_DONE') {
+      console.log("[background.js] Received SELECTION_DONE message:", message);
+      fetch('https://noteify.duckdns.org/users/getuploadtoken', { credentials: 'include' })
+        .then(res => res.json())
+        .then(tokenData => {
+          const uploadToken = tokenData.token || '';
+          // Try to get the tabId from sender or fallback to active tab
+          let tabId = sender.tab && sender.tab.id;
+          if (!tabId) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+              if (tabs.length > 0) {
+                tabId = tabs[0].id;
+                sendCropMessage(tabId, message, uploadToken);
+              } else {
+                console.error('[background.js] Could not determine tabId for screenshot upload.');
+              }
+            });
+          } else {
+            sendCropMessage(tabId, message, uploadToken);
+          }
+        });
+    } else if (message.type === "UPLOAD_SCREENSHOT") {
+      const { image, category } = message;
+      console.log("[background.js] Uploading screenshot (with category):", category);
+
+      function dataURLtoBlob(dataurl) {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+          bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while(n--){
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], {type:mime});
+      }
+
+      const blob = dataURLtoBlob(image);
+      const formData = new FormData();
+      formData.append("file", blob, "screenshot.png");
+      if (category) {
+        formData.append("category", category);
+      }
+
+      fetch("https://noteify.duckdns.org/notes/create/image", {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      })
+      .then(async res => {
+        if (res.status === 401) {
+          sendResponse({ status: 401 });
+          return;
+        }
+        const data = await res.json();
+        sendResponse({ success: true, data });
+      })
+      .catch(err => {
+        console.error("[background.js] Screenshot upload failed:", err);
+        sendResponse({ success: false });
+      });
+      return true; // async
     }
   });
   
@@ -175,4 +234,16 @@ chrome.runtime.onInstalled.addListener(() => {
       });
     }
   });
+  
+  function sendCropMessage(tabId, message, uploadToken) {
+    console.log('[background.js] Sending uploadToken to tab:', tabId, 'token:', uploadToken);
+    chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
+      chrome.tabs.sendMessage(tabId, {
+        type: 'CROP_AND_UPLOAD',
+        dataUrl,
+        coords: message.coords,
+        uploadToken
+      });
+    });
+  }
   
