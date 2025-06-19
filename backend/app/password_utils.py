@@ -1,6 +1,6 @@
-import bcrypt
 from app.config import settings
 from cryptography.fernet import Fernet
+import bcrypt
 
 key = str(settings.TOKEN_KEY).encode('utf-8')
 

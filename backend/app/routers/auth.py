@@ -1,22 +1,21 @@
-# app/routers/auth.py
-from fastapi import APIRouter,Depends,Response
-from fastapi.responses import JSONResponse
-from fastapi import status, HTTPException
+from app.config import settings
 from app.db.models import UserAuth
 from app.db.database import get_db
-from sqlalchemy.orm import Session
-from app.utils import Autherize,generate_jwt_token
 from app.db.schemas import *
-from app.config import settings
 from app.password_utils import verify_hash,generate_hash
-import logging
+from app.utils import Autherize,generate_jwt_token
+from fastapi import APIRouter,Depends,Response
+from fastapi import status, HTTPException
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import DataError
-import secrets
-from redis import Redis
+import logging
+
+
 
 router = APIRouter(prefix="/users",tags=['Users'])
 
 logger = logging.getLogger(__name__)
+
 
 @router.post("/register",status_code=status.HTTP_201_CREATED,response_model=registerResponse)
 def register(data : registerRequest ,db : Session=Depends(get_db)):
@@ -49,9 +48,11 @@ def register(data : registerRequest ,db : Session=Depends(get_db)):
     )
 
 
+
 @router.get("/login",response_model=getLoginInfo,status_code=status.HTTP_200_OK)
 def getUserInfo(db : Session=Depends(get_db), user : UserAuth = Depends(Autherize)):
     return user
+
 
 
 
@@ -97,6 +98,7 @@ def login(data: loginRequest,response: Response,db: Session = Depends(get_db)):
         preference=user.preference
     )
 
+
 @router.post("/logout",status_code=status.HTTP_200_OK,response_model=logoutResponse)
 def logout(response : Response, user: UserAuth = Depends(Autherize),db: Session = Depends(get_db)):
     logger.info(f"Logout for user: {user.email}")
@@ -105,6 +107,8 @@ def logout(response : Response, user: UserAuth = Depends(Autherize),db: Session 
     response.delete_cookie(key="jwt")
     response.delete_cookie(key="refresh_token")
     return logoutResponse(info="Logged out Successfully")
+
+
 
 
 @router.patch("/preference",status_code=status.HTTP_200_OK,response_model=preferenceData)

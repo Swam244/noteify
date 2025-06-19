@@ -1,16 +1,16 @@
-from fastapi import APIRouter,Depends,Response
-from fastapi import status, HTTPException
-from app.db.models import UserAuth,NotionID
-from app.db.database import get_db
-from sqlalchemy.orm import Session
-from app.utils import Autherize
-from app.db.schemas import *
 from app.config import settings
-import logging
-from fastapi.responses import RedirectResponse
-import requests
-from app.password_utils import encryptToken
 from app.core.notion_sdk import createNotionDB
+from app.db.database import get_db
+from app.db.models import UserAuth,NotionID
+from app.db.schemas import *
+from app.password_utils import encryptToken
+from app.utils import Autherize
+from fastapi import APIRouter,Depends,Response
+from fastapi import HTTPException
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+import logging
+import requests
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,7 @@ def notionOauth2Start(user: UserAuth = Depends(Autherize)):
         f"&response_type=code"
     )
     return RedirectResponse(url)
+
 
 
 

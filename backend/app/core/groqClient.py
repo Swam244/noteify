@@ -1,9 +1,8 @@
-import logging
-from groq import Groq
-from app.config import settings
-import json
 from app.core.prompts import ENRICHMENT_PROMPTS
-import redis
+from app.config import settings
+from groq import Groq
+import logging
+import json
 
 logger = logging.getLogger(__name__)
 

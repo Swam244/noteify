@@ -1,11 +1,11 @@
-from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams, PointStruct,PayloadSchemaType
 from app.core.cohereClient import get_embeddings
 from app.config import settings
+from app.db.models import NotionBlock
+from sqlalchemy.orm import Session
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import Distance, VectorParams, PointStruct,PayloadSchemaType
 import uuid
 import logging
-from sqlalchemy.orm import Session
-from app.db.models import NotionBlock
 
 logger = logging.getLogger(__name__)
 
@@ -17,15 +17,15 @@ qdrant_client = QdrantClient(
     api_key=QDRANT_API_KEY
 )
 
-DATA_COLLECTION_NAME = "test"
+VECTOR_DB_NAME = settings.VECTOR_DB_NAME
 EMBEDDING_DIM = 384
 
 
 
 def initDataCollection():
-    if not qdrant_client.collection_exists(DATA_COLLECTION_NAME):
+    if not qdrant_client.collection_exists(VECTOR_DB_NAME):
         qdrant_client.recreate_collection(
-            collection_name=DATA_COLLECTION_NAME,
+            collection_name=VECTOR_DB_NAME,
             vectors_config=VectorParams(
                 size=EMBEDDING_DIM,
                 distance=Distance.COSINE
@@ -33,20 +33,20 @@ def initDataCollection():
         )
         
         qdrant_client.create_payload_index(
-            collection_name=DATA_COLLECTION_NAME,
+            collection_name=VECTOR_DB_NAME,
             field_name="user_id",
             field_schema=PayloadSchemaType.KEYWORD
         )
         
         qdrant_client.create_payload_index(
-            collection_name=DATA_COLLECTION_NAME,
+            collection_name=VECTOR_DB_NAME,
             field_name="category", 
             field_schema=PayloadSchemaType.KEYWORD
         )
         
-        logger.info(f"Collection '{DATA_COLLECTION_NAME}' created with user_id and category indexes")
+        logger.info(f"Collection '{VECTOR_DB_NAME}' created with user_id and category indexes")
     else:
-        logger.info(f"Collection '{DATA_COLLECTION_NAME}' already exists")
+        logger.info(f"Collection '{VECTOR_DB_NAME}' already exists")
 
 
 
@@ -58,7 +58,7 @@ def similarityDataSearch(text: str, user_id: int, threshold: float = 0.9):
     embedding = get_embeddings(text)
     
     hits = qdrant_client.search(
-        collection_name=DATA_COLLECTION_NAME,
+        collection_name=VECTOR_DB_NAME,
         query_vector=embedding,
         limit=1,
         query_filter={
@@ -88,7 +88,7 @@ def deleteHighlightById(point_id: str):
 
     logger.info(f"Attempting to delete point with ID: {point_id}")
     response = qdrant_client.delete(
-        collection_name=DATA_COLLECTION_NAME,
+        collection_name=VECTOR_DB_NAME,
         points_selector={"points": [point_id]}
     )
     print(response.status)
@@ -107,7 +107,7 @@ def saveHighlightData(text: str, user_id: int, category: str, block_id : str, pa
     embedding = get_embeddings(text)
     pt_id = uuid.uuid4().hex
     info = qdrant_client.upsert(
-        collection_name=DATA_COLLECTION_NAME,
+        collection_name=VECTOR_DB_NAME,
         points=[PointStruct(
             id=pt_id,
             vector=embedding,
@@ -150,7 +150,7 @@ def saveHighlightData(text: str, user_id: int, category: str, block_id : str, pa
 def listUserDataHighlights(user_id: str):
     logger.info(f"Listing highlights for user_id: {user_id}")
     highlights = qdrant_client.scroll(
-        collection_name=DATA_COLLECTION_NAME,
+        collection_name=VECTOR_DB_NAME,
         scroll_filter={"must": [{"key": "user_id", "match": {"value": user_id}}]},
         limit=100
     )[0]
@@ -167,7 +167,7 @@ def similaritySearchCategory(text: str, user_id: int, threshold: float = 0.5):
     user_id = str(user_id)
 
     hits = qdrant_client.search(
-        collection_name=DATA_COLLECTION_NAME,
+        collection_name=VECTOR_DB_NAME,
         query_vector=embedding,
         limit=1,
         query_filter={"must": [{"key": "user_id", "match": {"value": user_id}}]},   
