@@ -1,20 +1,20 @@
+from app.core.groqClient import categorize_note,enrich_note,handleCode
+from app.core.notion_sdk import createNotionPage,createCategoryPageNotion,createNotionBlock,createImageBlockNotion
+from app.core.qdrantClient import saveHighlightData,similarityDataSearch,similaritySearchCategory
+from app.core.s3_handler import uploadImage
+from app.db.models import UserAuth,UserCategories,NotionID,NotionPage,Preferences
+from app.db.database import get_db
+from app.db.schemas import *
+from app.utils import Autherize,normalizeCategoryName, getNotionToken
 from fastapi import APIRouter,Depends,UploadFile, File,BackgroundTasks, Form
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
-from app.db.models import UserAuth,UserCategories,NotionID,NotionPage,Preferences
-from app.db.database import get_db
 from sqlalchemy.orm import Session
-from app.utils import Autherize,normalizeCategoryName, getNotionToken
-from app.db.schemas import *
-import logging
-from app.core.groqClient import categorize_note,enrich_note,handleCode
-from app.core.notion_sdk import createNotionPage,createCategoryPageNotion,createNotionBlock,createImageBlockNotion
-import json
-from app.core.qdrantClient import saveHighlightData,similarityDataSearch,similaritySearchCategory
-from app.core.s3_handler import uploadImage, getImageInfo
-import uuid
-import os
 from pathlib import Path
+import uuid
+import logging
+import json
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,9 @@ router = APIRouter(prefix="/notes",tags=['Notes'])
 
 @router.get("/categories")
 def getUserCategories(user: UserAuth = Depends(Autherize), db: Session = Depends(get_db)):
-
+    logger.info(f"Fetching categories for user: {user.user_id}")
     categories = db.query(UserCategories).filter(UserCategories.user_id == user.user_id).all()
-    
+    logger.info(f"Found {len(categories)} categories for user: {user.user_id}")
     return JSONResponse({
         "categories": [cat.category_name for cat in categories]
     }, status_code=status.HTTP_200_OK)
@@ -36,15 +36,14 @@ def getUserCategories(user: UserAuth = Depends(Autherize), db: Session = Depends
 
 @router.post("/category")
 def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
-
-    print(len(data.text))
-
+    logger.info(f"Predicting category for user: {user.user_id}, text length: {len(data.text)}")
     if len(data.text) < 30:
+        logger.warning("Highlighted text too short to be noteworthy.")
         return JSONResponse({
             "detail":"Highlighted text too short to be noteworthy."
         },status_code=status.HTTP_400_BAD_REQUEST)
-
     if len(data.text) > 2000:
+        logger.warning("Text too long (NOTION DOESNT SUPPORT ADDING TOO LONG SENTENCES)")
         return JSONResponse({
             "detail":"Text too long (NOTION DOESNT SUPPORT ADDING TOO LONG SENTENCES)"
         },status_code=status.HTTP_400_BAD_REQUEST)
@@ -52,6 +51,7 @@ def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
     initialCat = similaritySearchCategory(data.text,user.user_id)
 
     if initialCat:
+        logger.info(f"Initial category found for user: {user.user_id}")
         result = {
             "text": data.text,
             "categories": {
@@ -76,15 +76,16 @@ def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
             if category_json[category] > mx_score:
                 mx_score = category_json[category]
                 category_found = category
-
-        
+                
+        logger.info(f"Predicted category: {category_found} for user: {user.user_id}")
         return JSONResponse(
             {
                 "category":category_found
             }
         ,status_code=status.HTTP_200_OK)
     except Exception as e:
-        return e
+        logger.error(f"Error predicting category: {str(e)}")
+        return JSONResponse({"detail": f"Error predicting category: {str(e)}"}, status_code=500)
 
 
 
@@ -184,6 +185,7 @@ def createNotesRaw(data : Notes, user : UserAuth = Depends(Autherize),db : Sessi
             status_code=status.HTTP_201_CREATED
         )    
         
+
     
 @router.post("/create/image")
 def create_image(category: str = Form(...), file: UploadFile = File(...),db: Session = Depends(get_db),user : UserAuth = Depends(Autherize)):
@@ -233,7 +235,6 @@ def create_image(category: str = Form(...), file: UploadFile = File(...),db: Ses
         
         if not page_id:
             logger.info(f"Page found of category {category} for user {user.user_id}, extracting page_id")
-            # info = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
             page_id = exist.notion_page_id
         
         try:
@@ -308,8 +309,8 @@ def createNotesCategorize(data : CategoryNotes,background_tasks : BackgroundTask
 
     if not page_id:
         logger.info(f"Page found of category {category} for user {user.user_id}, extracting page_id")
-        info = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
-        page_id = info.notion_page_id
+        # info = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
+        page_id = exist.notion_page_id
 
 
     logger.info(f"Page ID found : {page_id}")
@@ -405,8 +406,7 @@ def createNotesEnrich(data : CategoryEnrich,background_tasks : BackgroundTasks ,
 
     if not page_id:
         logger.info(f"Page found of category {category} for user {user.user_id}, extracting page_id")
-        info = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
-        page_id = info.notion_page_id
+        page_id = exist.notion_page_id
 
 
     logger.info(f"Page ID found : {page_id}")

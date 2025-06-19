@@ -1,10 +1,8 @@
 from .database import Base
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, TIMESTAMP, text, UniqueConstraint,Enum
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql.expression import null,text
+from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.orm import relationship
-import uuid
 import enum
 
 class Preferences(enum.Enum):
@@ -52,8 +50,6 @@ class NotionPage(Base):
     notion_page_id = Column(String, nullable=False, unique=True)
     notion_page_url = Column(Text)
     notion_database_id = Column(String)    
-    # notes_block_id= Column(String)   
-    # references_block_id= Column(String)
     
     created_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
     updated_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'), onupdate=text('now()'))

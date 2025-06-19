@@ -1,15 +1,15 @@
 from app.config import settings
+from app.db.models import UserAuth, NotionID
+from app.db.models import UserAuth
+from app.db.database import get_db
+from app.password_utils import decryptToken
+from fastapi import Request, HTTPException, Response, Cookie, Depends
+from sqlalchemy.orm import Session
 import hashlib
 import datetime
 import jwt
-from fastapi import Request, HTTPException, Response, Cookie, Depends
-from app.db.models import UserAuth
-from sqlalchemy.orm import Session
-from app.db.models import UserAuth, NotionID
-from app.db.database import get_db
 import logging
 import inflect
-from app.password_utils import encryptToken,decryptToken
 
 logger = logging.getLogger(__name__)
 

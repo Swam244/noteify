@@ -4,11 +4,11 @@ from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.input_file import InputFile
 from appwrite.exception import AppwriteException
-import logging
 from app.config import settings
 from app.db.models import UserImages,UserAuth
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ client.set_project(PROJECT_ID)
 client.set_key(API_KEY)
 
 storage = Storage(client)
+
 
 
 def createUrls(file_id: str, db : Session, user : UserAuth, bucket_id: str = BUCKET_ID, project_id: str = PROJECT_ID, endpoint: str = ENDPOINT):
@@ -53,6 +54,8 @@ def createUrls(file_id: str, db : Session, user : UserAuth, bucket_id: str = BUC
     }
 
 
+
+
 def getImageInfo(file_id: str,db : Session, user : UserAuth):
     logger.info(f"[getImageInfo] Called with file_id={file_id}, user_id={user.user_id}")
     
@@ -78,6 +81,10 @@ def getImageInfo(file_id: str,db : Session, user : UserAuth):
             "success": False,
             "error": str(e)
         }
+
+
+
+
 
 
 def uploadImage(file_path: str, file_id: str,db : Session, user : UserAuth, bucket_id: str = BUCKET_ID,permissions: Optional[list] = None):
@@ -121,6 +128,13 @@ def uploadImage(file_path: str, file_id: str,db : Session, user : UserAuth, buck
             "success": False,
             "error": str(e)
         }
+
+
+
+
+
+
+
 
 # NOT TESTED.
 def update_file_in_storage(file_id: str,file_path: str,bucket_id: str = BUCKET_ID,permissions: Optional[list] = None) -> Dict[str, Any]:

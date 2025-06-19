@@ -1,10 +1,9 @@
-import logging
-from notion_client import Client, APIResponseError
-from fastapi import HTTPException,status
-from app.db.database import get_db
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 from app.db.models import NotionPage, UserAuth
+from fastapi.responses import JSONResponse
+from fastapi import HTTPException,status
+from notion_client import Client, APIResponseError
+from sqlalchemy.orm import Session
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -136,11 +135,12 @@ def createNotionPage(access_token: str,user : UserAuth ,db: Session , isDefault 
 
 
 def createNotionDB(access_token: str, db : Session, user : UserAuth):
-    parent_root_page_id = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == "NoteifyNotes").first()
+    email = user.email.split('@')[0]
+    parent_root_page_id = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == "NoteifyNotes_{}".format(email)).first()
 
     if not parent_root_page_id:
         try:
-            parent_root_page_id = createNotionPage(access_token,user,db,isDefault=True)
+            parent_root_page_id = createNotionPage(access_token,user,db,isDefault=True,title="NoteifyNotes_{}".format(email))
         except Exception as e:
             return e
 
@@ -153,7 +153,7 @@ def createNotionDB(access_token: str, db : Session, user : UserAuth):
             {
                 "type": "text",
                 "text": {
-                    "content": "NoteifyNotes"
+                    "content": "NoteifyNotes_{}".format(email)
                 }
             }
         ],
