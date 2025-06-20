@@ -44,6 +44,7 @@ class CategoryNotes(Category):
     text : str
     destination : str
     checked : bool
+    token : str
 
 class CategoryEnrich(CategoryNotes):
     enrichment : str

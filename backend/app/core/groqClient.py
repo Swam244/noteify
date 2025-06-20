@@ -1,8 +1,11 @@
-from app.core.prompts import ENRICHMENT_PROMPTS
+from app.core.prompts import ENRICHMENT_PROMPTS,getUserSpecificPromptExamples
 from app.config import settings
+from app.db.models import UserAuth
+from sqlalchemy.orm import Session
 from groq import Groq
 import logging
 import json
+
 
 logger = logging.getLogger(__name__)
 
@@ -11,11 +14,21 @@ GROQ_MODEL = settings.GROQ_MODEL
 
 client = Groq(api_key=GROQ_API_KEY)
 
-# REMEMBER HERE EXAMPLES WILL ALSO COME WHICH WILL BE DYNAMICALLY FETCHED BASED ON THE USER.
-def categorize_note(note_text: str) -> str:
+
+def categorize_note(user : UserAuth, db : Session, note_text: str) -> str:
 
     prompt = ENRICHMENT_PROMPTS['category']
+    examples = getUserSpecificPromptExamples(user.user_id,db)
+
+    prompt += "\nHere are some examples (Ignore if none are present): \n"
+    for example in examples:
+        # print(example)
+        if example:
+            prompt += example
+
     prompt = prompt + f"Text : {note_text}"
+
+    print(prompt)
 
     try:
         chat_completion = client.chat.completions.create(

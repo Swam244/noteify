@@ -6,6 +6,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams, PointStruct,PayloadSchemaType
 import uuid
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,37 @@ qdrant_client = QdrantClient(
 VECTOR_DB_NAME = settings.VECTOR_DB_NAME
 EMBEDDING_DIM = 384
 
+
+def searchByCategory(user_id: int, category: str):
+    logger.info(f"Searching for a random example for user_id: {user_id} in category: {category} where category != llm_top1")
+    
+    must_conditions = [
+        {"key": "user_id", "match": {"value": str(user_id)}},
+        {"key": "category", "match": {"value": category}}
+    ]
+    
+    scroll_filter = {
+        "must": must_conditions
+    }
+
+    highlights = qdrant_client.scroll(
+        collection_name=VECTOR_DB_NAME,
+        scroll_filter=scroll_filter,
+        limit=20
+    )[0]
+
+    if not highlights:
+        logger.info(f"No highlights found for user_id: {user_id} in category: {category}")
+        return None
+
+    payloads = [point.payload for point in highlights]
+    filtered_payloads = [p for p in payloads if p.get('category') != p.get('llm_top1')]
+    if not filtered_payloads:
+        logger.info(f"No highlights found for user_id: {user_id} in category: {category} with category != llm_top1")
+        return None
+    example = random.choice(filtered_payloads)
+    logger.info(f"Returning a random example for user_id: {user_id} in category: {category} where category != llm_top1")
+    return example
 
 
 def initDataCollection():
@@ -102,7 +134,7 @@ def deleteHighlightById(point_id: str):
 
 
 
-def saveHighlightData(text: str, user_id: int, category: str, block_id : str, page_id : str, destination : str,code : bool, db : Session):
+def saveHighlightData(text: str, user_id: int,category: str, block_id : str, page_id : str, destination : str,code : bool, db : Session,llm_predictions = None ,llm_top1 = None):
     logger.info(f"Saving highlight for user_id: {user_id}, category: {category} in vector DB")
     embedding = get_embeddings(text)
     pt_id = uuid.uuid4().hex
@@ -115,6 +147,8 @@ def saveHighlightData(text: str, user_id: int, category: str, block_id : str, pa
                 "highlight": text,
                 "user_id": str(user_id),
                 "category": category,
+                "llm_predictions": llm_predictions,
+                "llm_top1": llm_top1
             }
         )]
     )

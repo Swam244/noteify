@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # FORMAT postgres://<username>:<password>@ip:host/<database_name>
-SQLALCHEMY_DATABASE_URL = settings.SQLALCHEMY_DATABASE_TEST_URL
+SQLALCHEMY_DATABASE_URL = settings.SQLALCHEMY_DATABASE_URL
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False,autoflush=False,bind=engine)
