@@ -9,11 +9,11 @@ chrome.runtime.onInstalled.addListener(() => {
   });
   
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("[background.js] Message received:", message);
+    // console.log("[background.js] Message received:", message);
   
     if (message.type === "SEND_SELECTED_TEXT") {
         const { text, destination, checked } = message;
-      console.log("[background.js] Sending to backend:", { text, destination });
+      // console.log("[background.js] Sending to backend:", { text, destination });
   
       // Get user data which includes preference
       fetch("https://noteify.duckdns.org/users/login", {
@@ -23,7 +23,7 @@ chrome.runtime.onInstalled.addListener(() => {
       .then(res => res.json())
       .then(userData => {
         const preference = userData.preference || 'RAW';
-        console.log("[background.js] User preference:", preference);
+        // console.log("[background.js] User preference:", preference);
         
         // Choose endpoint based on preference
         let endpoint;
@@ -44,16 +44,21 @@ chrome.runtime.onInstalled.addListener(() => {
         });
       })
       .then(res => {
-        console.log("[background.js] Fetch response status for SEND_SELECTED_TEXT:", res.status);
+        // console.log("[background.js] Fetch response status for SEND_SELECTED_TEXT:", res.status);
         return res.json().then(data => ({ status: res.status, ...data }));
       })
       .then(data => {
-        console.log("[background.js] Parsed data for SEND_SELECTED_TEXT:", data);
+        // console.log("[background.js] Parsed data for SEND_SELECTED_TEXT:", data);
         // Ensure a message is always sent back
         if (!data.message && !data.category && !data.detail) {
           data.message = "Sent successfully!"; // Default success message
         }
+        // If the response contains a token, pass it along to the content script
+        if (data.token) {
+          sendResponse({ ...data, token: data.token });
+        } else {
         sendResponse(data);
+        }
       })
       .catch((err) => {
         console.error("[background.js] Error sending selected text:", err);
@@ -61,7 +66,7 @@ chrome.runtime.onInstalled.addListener(() => {
       });
       return true; // Indicates that sendResponse will be called asynchronously
     } else if (message.type === "CHECK_NOTION_CONNECTION") {
-      console.log("[background.js] Checking Notion connection status...");
+      // console.log("[background.js] Checking Notion connection status...");
       fetch("https://noteify.duckdns.org/users/login", {
         method: "GET",
         credentials: "include"
@@ -69,7 +74,7 @@ chrome.runtime.onInstalled.addListener(() => {
       .then(res => res.json())
       .then(data => {
         const notionConnectedStatus = !!data.notionConnected;
-        console.log("[background.js] Notion connection status fetched:", notionConnectedStatus);
+        // console.log("[background.js] Notion connection status fetched:", notionConnectedStatus);
         sendResponse({ notionConnected: notionConnectedStatus });
       })
       .catch(err => {
@@ -78,8 +83,8 @@ chrome.runtime.onInstalled.addListener(() => {
       });
       return true; // Indicates that sendResponse will be called asynchronously
     } else if (message.type === "CONFIRM_CATEGORY") {
-      const { text, category, destination, enrichment, checked } = message;
-      console.log("[background.js] Confirming category:", { text, category, destination, enrichment });
+      const { text, category, destination, enrichment, checked, token } = message;
+      // console.log("[background.js] Confirming category:", { text, category, destination, enrichment });
 
       // Get user preference first
       fetch("https://noteify.duckdns.org/users/login", {
@@ -89,7 +94,7 @@ chrome.runtime.onInstalled.addListener(() => {
       .then(res => res.json())
       .then(userData => {
         const preference = userData.preference;
-        console.log("[background.js] User preference for confirmation:", preference);
+        // console.log("[background.js] User preference for confirmation:", preference);
         
         // Choose endpoint based on preference and enrichment
         let endpoint;
@@ -99,7 +104,7 @@ chrome.runtime.onInstalled.addListener(() => {
           endpoint = "https://noteify.duckdns.org/notes/create";
         }
 
-        // Send the data to appropriate endpoint
+        // Send the data to appropriate endpoint, including token if present
         return fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,16 +114,17 @@ chrome.runtime.onInstalled.addListener(() => {
             category, 
             destination,
             ...(enrichment && { enrichment }),
-            ...(typeof checked !== 'undefined' ? { checked } : {})
+            ...(typeof checked !== 'undefined' ? { checked } : {}),
+            ...(token ? { token } : {})
           }),
         });
       })
       .then(res => {
-        console.log("[background.js] Fetch response status for CONFIRM_CATEGORY:", res.status);
+        // console.log("[background.js] Fetch response status for CONFIRM_CATEGORY:", res.status);
         return res.json().then(data => ({ status: res.status, ...data }));
       })
       .then(data => {
-        console.log("[background.js] Parsed data for CONFIRM_CATEGORY:", data);
+        // console.log("[background.js] Parsed data for CONFIRM_CATEGORY:", data);
         // Ensure a message is always sent back
         if (!data.message && !data.category && !data.detail) {
           data.message = "Category confirmed successfully!"; // Default success message
@@ -131,14 +137,14 @@ chrome.runtime.onInstalled.addListener(() => {
       });
       return true; // Indicates that sendResponse will be called asynchronously
     } else if (message.type === "GET_CATEGORIES") {
-      console.log("[background.js] Fetching categories...");
+      // console.log("[background.js] Fetching categories...");
       fetch("https://noteify.duckdns.org/notes/categories", {
         method: "GET",
         credentials: "include"
       })
       .then(res => res.json())
       .then(data => {
-        console.log("[background.js] Categories fetched:", data);
+        // console.log("[background.js] Categories fetched:", data);
         sendResponse(data);
       })
       .catch(err => {
@@ -147,14 +153,14 @@ chrome.runtime.onInstalled.addListener(() => {
       });
       return true; // Indicates that sendResponse will be called asynchronously
     } else if (message.type === "GET_USER_PREFERENCE") {
-      console.log("[background.js] Getting user preference...");
+      // console.log("[background.js] Getting user preference...");
       fetch("https://noteify.duckdns.org/users/login", {
         method: "GET",
         credentials: "include"
       })
       .then(res => res.json())
       .then(data => {
-        console.log("[background.js] User preference fetched:", data.preference);
+        // console.log("[background.js] User preference fetched:", data.preference);
         sendResponse({ preference: data.preference });
       })
       .catch(err => {
@@ -163,7 +169,7 @@ chrome.runtime.onInstalled.addListener(() => {
       });
       return true; // Indicates that sendResponse will be called asynchronously
     } else if (message.type === 'SELECTION_DONE') {
-      console.log("[background.js] Received SELECTION_DONE message:", message);
+      // console.log("[background.js] Received SELECTION_DONE message:", message);
       fetch('https://noteify.duckdns.org/users/getuploadtoken', { credentials: 'include' })
         .then(res => res.json())
         .then(tokenData => {
@@ -185,7 +191,7 @@ chrome.runtime.onInstalled.addListener(() => {
         });
     } else if (message.type === "UPLOAD_SCREENSHOT") {
       const { image, category } = message;
-      console.log("[background.js] Uploading screenshot (with category):", category);
+      // console.log("[background.js] Uploading screenshot (with category):", category);
 
       function dataURLtoBlob(dataurl) {
         var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
@@ -236,7 +242,7 @@ chrome.runtime.onInstalled.addListener(() => {
   });
   
   function sendCropMessage(tabId, message, uploadToken) {
-    console.log('[background.js] Sending uploadToken to tab:', tabId, 'token:', uploadToken);
+    // console.log('[background.js] Sending uploadToken to tab:', tabId, 'token:', uploadToken);
     chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
       chrome.tabs.sendMessage(tabId, {
         type: 'CROP_AND_UPLOAD',
