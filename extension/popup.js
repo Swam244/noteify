@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const dataToSend = { preference };
 
     statusMsgSettings.textContent = "Saving preference...";
-    console.log("savePreference: Setting statusMsgSettings to", statusMsgSettings.textContent);
+    // console.log("savePreference: Setting statusMsgSettings to", statusMsgSettings.textContent);
 
     try {
       const res = await fetch("https://noteify.duckdns.org/users/preference", {
@@ -45,15 +45,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (res.ok) {
         statusMsgSettings.textContent = "Preference saved successfully!";
-        console.log("savePreference: StatusMsgSettings updated to", statusMsgSettings.textContent);
+        // console.log("savePreference: StatusMsgSettings updated to", statusMsgSettings.textContent);
         await checkLoginStatus(); // Re-fetch user status to ensure UI reflects latest state
       } else {
         const errorData = await res.json();
         statusMsgSettings.textContent = `Failed to save preference: ${errorData.message || res.statusText}`;
-        console.log("savePreference: StatusMsgSettings updated to error", statusMsgSettings.textContent);
+        // console.log("savePreference: StatusMsgSettings updated to error", statusMsgSettings.textContent);
       }
     } catch (err) {
-      console.error("[popup.js] Save preference error:", err);
+      // console.error("[popup.js] Save preference error:", err);
       statusMsgSettings.textContent = "Network error during preference save.";
     }
   }
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     statusMsgSettings.textContent = "Adding category...";
-    console.log("saveCategory: Setting statusMsgSettings to", statusMsgSettings.textContent);
+    // console.log("saveCategory: Setting statusMsgSettings to", statusMsgSettings.textContent);
 
     try {
       // Assuming a POST endpoint for adding new categories
@@ -81,22 +81,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (res.ok) {
         statusMsgSettings.textContent = "Category added successfully!";
-        console.log("saveCategory: StatusMsgSettings updated to", statusMsgSettings.textContent);
+        // console.log("saveCategory: StatusMsgSettings updated to", statusMsgSettings.textContent);
         categoryInput.value = ''; // Clear input after successful add
         await checkLoginStatus(); // Re-fetch user status to update UI
       } else if (res.status === 409) {
         statusMsgSettings.textContent = "Category already exists.";
-        console.log("saveCategory: StatusMsgSettings updated to conflict", statusMsgSettings.textContent);
+        // console.log("saveCategory: StatusMsgSettings updated to conflict", statusMsgSettings.textContent);
       } else if (res.status === 500) {
         statusMsgSettings.textContent = "Server error: Failed to add category. Please try again.";
-        console.log("saveCategory: StatusMsgSettings updated to server error", statusMsgSettings.textContent);
+        // console.log("saveCategory: StatusMsgSettings updated to server error", statusMsgSettings.textContent);
       } else {
         const errorData = await res.json();
         statusMsgSettings.textContent = `Failed to add category: ${errorData.message || res.statusText}`;
-        console.log("saveCategory: StatusMsgSettings updated to generic error", statusMsgSettings.textContent);
+        // console.log("saveCategory: StatusMsgSettings updated to generic error", statusMsgSettings.textContent);
       }
     } catch (err) {
-      console.error("[popup.js] Add category error:", err);
+      // console.error("[popup.js] Add category error:", err);
       statusMsgSettings.textContent = "Network error during category add.";
     }
   }
@@ -175,17 +175,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function checkLoginStatus() {
     const isCurrentlyInSettingsView = settingsView.style.display === "flex";
-    console.log("checkLoginStatus called. isCurrentlyInSettingsView:", isCurrentlyInSettingsView);
+    // console.log("checkLoginStatus called. isCurrentlyInSettingsView:", isCurrentlyInSettingsView);
 
     // Ensure main statusMsg is hidden if in settings view, or cleared if not.
     if (isCurrentlyInSettingsView) {
       statusMsg.style.display = "none";
       statusMsg.textContent = ""; // Clear main status msg content
-      console.log("checkLoginStatus: Main statusMsg hidden (in settings view).");
+      // console.log("checkLoginStatus: Main statusMsg hidden (in settings view).");
     } else {
       statusMsg.textContent = ""; // Clear main status msg content
       statusMsg.style.display = "none"; // Default to hidden, will be shown if needed later
-      console.log("checkLoginStatus: Main statusMsg cleared and hidden (not in settings view).");
+      // console.log("checkLoginStatus: Main statusMsg cleared and hidden (not in settings view).");
     }
 
     try {
@@ -193,19 +193,19 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "GET",
         credentials: "include"
       });
-      console.log("checkLoginStatus fetch response status:", res.status);
+      // console.log("checkLoginStatus fetch response status:", res.status);
 
       if (res.status === 200) {
         const data = await res.json();
         currentUser = data;
-        console.log("Current User Data:", currentUser);
+        // console.log("Current User Data:", currentUser);
         userInfo.textContent = `${data.username} (${data.email})`;
 
         if (isCurrentlyInSettingsView) {
-          console.log("checkLoginStatus: Keeping settings view active.");
+          // console.log("checkLoginStatus: Keeping settings view active.");
           statusMsg.style.display = "none";
           statusMsg.textContent = ""; // Ensure it's clear as well
-          console.log("checkLoginStatus: Main statusMsg explicitly hidden and cleared within settings block.");
+          // console.log("checkLoginStatus: Main statusMsg explicitly hidden and cleared within settings block.");
           logoutBtn.style.display = "none";
           loginForm.style.display = "none";
           notionConnectContainer.style.display = "none";
@@ -214,11 +214,11 @@ document.addEventListener("DOMContentLoaded", () => {
           notionMsg.style.display = "none";
           settingsToggleBtn.style.display = "none";
           mainHeader.style.display = "none";
+          if (screenshotBtn) screenshotBtn.style.display = "none";
         } else {
-          console.log("checkLoginStatus: Setting up main view.");
+          // console.log("checkLoginStatus: Setting up main view.");
           loginForm.style.display = "none";
           logoutBtn.style.display = "block";
-
           if (!data.notionConnected) {
             notionMsg.textContent = "Please connect your Notion account.";
             notionMsg.style.display = "block";
@@ -228,6 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
             statusMsg.style.display = "none";
             settingsToggleBtn.style.display = "none";
             mainHeader.style.display = "block"; // Show main header
+            if (screenshotBtn) screenshotBtn.style.display = "none";
           } else {
             notionMsg.style.display = "none";
             notionConnectContainer.style.display = "none";
@@ -236,6 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
             statusMsg.style.display = "block";
             settingsToggleBtn.style.display = "block";
             mainHeader.style.display = "block"; // Show main header
+            if (screenshotBtn) screenshotBtn.style.display = "block";
           }
         }
 
@@ -257,12 +259,13 @@ document.addEventListener("DOMContentLoaded", () => {
         settingsToggleBtn.style.display = "none";
         settingsView.style.display = "none"; // Crucial: ensure settings view is hidden if not logged in
         mainHeader.style.display = "block"; // Ensure header is shown on login page
+        if (screenshotBtn) screenshotBtn.style.display = "none";
       } else {
-        console.log("checkLoginStatus: Unexpected error.");
+        // console.log("checkLoginStatus: Unexpected error.");
         if (!isCurrentlyInSettingsView) {
           statusMsg.textContent = "Unexpected error. Try again later.";
           statusMsg.style.display = "block";
-          console.log("checkLoginStatus: Main statusMsg showing for unexpected error.", statusMsg.textContent);
+          // console.log("checkLoginStatus: Main statusMsg showing for unexpected error.", statusMsg.textContent);
         }
       }
     } catch (err) {
@@ -270,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isCurrentlyInSettingsView) {
         statusMsg.textContent = "Network error. Check server.";
         statusMsg.style.display = "block";
-        console.log("checkLoginStatus: Main statusMsg showing for network error.", statusMsg.textContent);
+        // console.log("checkLoginStatus: Main statusMsg showing for network error.", statusMsg.textContent);
       }
     }
   }
@@ -349,17 +352,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const screenshotBtn = document.getElementById("screenshotBtn");
   if (screenshotBtn) {
     screenshotBtn.addEventListener("click", async () => {
-      console.log("[popup.js] Screenshot button clicked");
+      // console.log("[popup.js] Screenshot button clicked");
       try {
         // Tell content script to start area selection
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        console.log("[popup.js] Current tab:", tab);
+        // console.log("[popup.js] Current tab:", tab);
         
         if (tab && /^https?:/.test(tab.url)) {
-          console.log("[popup.js] Sending START_SCREENSHOT_SELECTION to tab:", tab.id);
+          // console.log("[popup.js] Sending START_SCREENSHOT_SELECTION to tab:", tab.id);
           chrome.tabs.sendMessage(tab.id, "START_SCREENSHOT_SELECTION");
         } else {
-          console.log("[popup.js] Invalid tab URL:", tab?.url);
+          // console.log("[popup.js] Invalid tab URL:", tab?.url);
           statusMsg.textContent = "Screenshot not available on this page.";
           statusMsg.style.display = "block";
         }

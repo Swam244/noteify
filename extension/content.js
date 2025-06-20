@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const observer = new MutationObserver(() => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      console.log('[Noteify] Mutation observed, re-scanning...');
+      // console.log('[Noteify] Mutation observed, re-scanning...');
       detectAllPDFs();
     }, 500); // Debounced re-scan after mutations
   });
@@ -117,6 +117,7 @@ let lastSelectedText = "";
 let floatingDiv = null;
 let feedbackDiv = null;
 let notionConnected = false; // Initialize to false, will be updated by background script
+let noteifyModalOpen = false;
 
 async function checkNotionConnection() {
   try {
@@ -147,6 +148,47 @@ function removeFloatingUI() {
   }
 }
 
+// --- DRAGGABLE FLOATING WINDOW HELPER ---
+let isDraggingFloatingUI = false;
+function makeElementDraggable(el, handle) {
+  let isDragging = false;
+  let startX, startY, startLeft, startTop;
+
+  handle.style.cursor = 'move';
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    isDragging = true;
+    isDraggingFloatingUI = true;
+    // Remove centering transform if present
+    el.style.transform = '';
+    if (el.style.left.includes('%')) {
+      // Convert to px for left/top
+      const rect = el.getBoundingClientRect();
+      el.style.left = rect.left + window.scrollX + 'px';
+      el.style.top = rect.top + window.scrollY + 'px';
+    }
+    startX = e.clientX;
+    startY = e.clientY;
+    startLeft = parseInt(el.style.left, 10);
+    startTop = parseInt(el.style.top, 10);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  });
+  function onMouseMove(e) {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    el.style.left = startLeft + dx + 'px';
+    el.style.top = startTop + dy + 'px';
+  }
+  function onMouseUp() {
+    isDragging = false;
+    isDraggingFloatingUI = false;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+}
+
 function showFloatingUI(text, rect) {
   removeFloatingUI();
 
@@ -170,6 +212,17 @@ function showFloatingUI(text, rect) {
   floatingDiv.style.transition = "opacity 0.2s ease";
   floatingDiv.style.transform = "scale(0.95)";
   floatingDiv.style.transformOrigin = "top left";
+
+  // Drag handle for floatingDiv
+  const dragHandle = document.createElement('div');
+  dragHandle.textContent = '≡';
+  dragHandle.style.fontSize = '18px';
+  dragHandle.style.marginRight = '8px';
+  dragHandle.style.cursor = 'move';
+  dragHandle.style.userSelect = 'none';
+  dragHandle.style.color = '#A5F3FC';
+  floatingDiv.appendChild(dragHandle);
+  makeElementDraggable(floatingDiv, dragHandle);
 
   // Send button
   const sendBtn = document.createElement("button");
@@ -211,20 +264,21 @@ function showFloatingUI(text, rect) {
       }
 
       if (response && response.category) {
-        console.log("[content.js] Response contains category:", response.category);
+        // console.log("[content.js] Response contains category:", response.category);
         // Show category confirmation form if a category is predicted
         const result = await showCategoryConfirmationForm(response.category, text);
         if (result.confirmed) {
-          // Send the confirmed category back to the backend
+          // Send the confirmed category back to the backend, including token if present
           chrome.runtime.sendMessage({
             type: "CONFIRM_CATEGORY",
             text: text,
             category: result.category,
             destination: window.location.href,
             enrichment: result.enrichment,
-            checked: result.checked
+            checked: result.checked,
+            ...(response.token ? { token: response.token } : {})
           }, (confirmResponse) => {
-            console.log("[content.js] Received confirmResponse:", confirmResponse);
+            // console.log("[content.js] Received confirmResponse:", confirmResponse);
             if (confirmResponse && confirmResponse.message) {
               showFeedback(confirmResponse.message);
             } else {
@@ -235,14 +289,14 @@ function showFloatingUI(text, rect) {
           showFeedback("Category confirmation cancelled.");
         }
       } else if (response && response.hasOwnProperty('message')) {
-        console.log("[content.js] Response contains message property:", response.message);
+        // console.log("[content.js] Response contains message property:", response.message);
         // Show general message for RAW preference or other backend messages
         showFeedback(response.message || "Sent successfully!");
       } else if (response) {
-        console.log("[content.js] Generic success response (no category/message property, but response is not null/undefined).");
+        // console.log("[content.js] Generic success response (no category/message property, but response is not null/undefined).");
         showFeedback("Sent successfully!");
       } else {
-        console.log("[content.js] Response is unexpected or empty (null/undefined/false).");
+        // console.log("[content.js] Response is unexpected or empty (null/undefined/false).");
         showFeedback("Failed to send to Notion. Please try again.");
       }
       removeFloatingUI();
@@ -293,12 +347,13 @@ function showFeedback(msg) {
   }
   
 async function showCategoryConfirmationForm(category, text) {
+  noteifyModalOpen = true;
   // Get user preference
   let userPreference = 'RAW';
   try {
     const prefResponse = await chrome.runtime.sendMessage({ type: "GET_USER_PREFERENCE" });
     userPreference = prefResponse.preference;
-    console.log("[content.js] User preference:", userPreference);
+    // console.log("[content.js] User preference:", userPreference);
   } catch (error) {
     console.error("[content.js] Failed to fetch user preference:", error);
   }
@@ -307,13 +362,14 @@ async function showCategoryConfirmationForm(category, text) {
   let availableCategories = [];
   try {
     const response = await chrome.runtime.sendMessage({ type: "GET_CATEGORIES" });
-    console.log("[content.js] Received categories from background:", response);
+    // console.log("[content.js] Received categories from background:", response);
     availableCategories = response.categories || [];
   } catch (error) {
     console.error("[content.js] Failed to fetch categories:", error);
   }
 
   const formDiv = document.createElement("div");
+  formDiv.classList.add('noteify-modal');
   formDiv.style.position = "fixed";
   formDiv.style.top = "20px";
   formDiv.style.left = "50%";
@@ -329,6 +385,7 @@ async function showCategoryConfirmationForm(category, text) {
   formDiv.style.zIndex = "999999";
   formDiv.style.width = "300px";
 
+  // Drag handle for formDiv (use heading as handle)
   const heading = document.createElement("h3");
   heading.textContent = "Predicted Category";
   heading.style.margin = "0 0 15px 0";
@@ -492,6 +549,7 @@ async function showCategoryConfirmationForm(category, text) {
   return new Promise((resolve) => {
     confirmBtn.onclick = () => {
       formDiv.remove();
+      noteifyModalOpen = false;
       resolve({ 
         confirmed: true, 
         category: categoryInput.value,
@@ -502,34 +560,39 @@ async function showCategoryConfirmationForm(category, text) {
 
     cancelBtn.onclick = () => {
       formDiv.remove();
+      noteifyModalOpen = false;
       resolve({ confirmed: false });
     };
   });
 }
 
 // Use mouseup for showing the floating UI
-document.addEventListener("mouseup", async () => {
-  console.log("[content.js] mouseup event fired.");
+document.addEventListener("mouseup", async (e) => {
+  // Prevent floating UI from disappearing if we're dragging it
+  if (isDraggingFloatingUI) return;
+  // Prevent removal if a modal is open
+  if (noteifyModalOpen) return;
+  // console.log("[content.js] mouseup event fired.");
   const selection = window.getSelection();
   const text = selection.toString().trim();
-  console.log("[content.js] Selected text on mouseup:", text);
+  // console.log("[content.js] Selected text on mouseup:", text);
 
   if (!text) {
     removeFloatingUI();
-    console.log("[content.js] No text selected, removing UI.");
+    // console.log("[content.js] No text selected, removing UI.");
     return;
   }
 
   lastSelectedText = text;
-  console.log("[content.js] Highlighted:", text);
+  // console.log("[content.js] Highlighted:", text);
 
   // Re-check Notion connection status via background script if not already true
   if (!notionConnected) {
-    console.log("[content.js] Notion not connected, re-checking status via background script...");
+    // console.log("[content.js] Notion not connected, re-checking status via background script...");
     await checkNotionConnection(); // This will now use the background script
     if (!notionConnected) {
       removeFloatingUI();
-      console.log("[content.js] Notion still not connected after re-check, removing UI.");
+      // console.log("[content.js] Notion still not connected after re-check, removing UI.");
       return;
     }
   }
@@ -538,33 +601,33 @@ document.addEventListener("mouseup", async () => {
   try {
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    console.log("[content.js] Attempting to show floating UI.");
+    // console.log("[content.js] Attempting to show floating UI.");
     showFloatingUI(text, rect);
   } catch (e) {
     // No valid range
     removeFloatingUI();
-    console.error("[content.js] Error getting selection range or showing UI:", e);
+    // console.error("[content.js] Error getting selection range or showing UI:", e);
   }
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  console.log("[content.js] Received message:", msg);
+  // console.log("[content.js] Received message:", msg);
   
   if (msg === "START_SCREENSHOT_SELECTION") {
-    console.log("[content.js] Starting screenshot selection");
+    // console.log("[content.js] Starting screenshot selection");
     startAreaSelection();
   } else if (msg.type === "GET_HIGHLIGHTED_TEXT") {
     sendResponse({ text: lastSelectedText });
   } else if (msg.type === "UPDATE_NOTION_CONNECTION_STATUS") {
     notionConnected = msg.notionConnected;
   } else if (msg.type === "CROP_AND_UPLOAD" && msg.dataUrl) {
-    console.log("[content.js] Cropping and uploading screenshot...");
+    // console.log("[content.js] Cropping and uploading screenshot...");
     cropAndUpload(msg.dataUrl, msg.coords);
   }
 });
 
 function startAreaSelection() {
-  console.log("[content.js] Creating area selection overlay");
+  // console.log("[content.js] Creating area selection overlay");
   const overlay = document.createElement('div');
   overlay.style = `
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -625,6 +688,7 @@ function startAreaSelection() {
 }
 
 async function promptCategoryForScreenshot() {
+  noteifyModalOpen = true;
   // Fetch available categories through background script
   let availableCategories = [];
   try {
@@ -635,6 +699,7 @@ async function promptCategoryForScreenshot() {
   }
 
   const formDiv = document.createElement("div");
+  formDiv.classList.add('noteify-modal');
   formDiv.style.position = "fixed";
   formDiv.style.top = "20px";
   formDiv.style.left = "50%";
@@ -650,6 +715,7 @@ async function promptCategoryForScreenshot() {
   formDiv.style.zIndex = "999999";
   formDiv.style.width = "300px";
 
+  // Drag handle for screenshot category prompt (use heading as handle)
   const heading = document.createElement("h3");
   heading.textContent = "Select Category for Screenshot";
   heading.style.margin = "0 0 15px 0";
@@ -733,6 +799,7 @@ async function promptCategoryForScreenshot() {
     confirmBtn.onclick = () => {
       const selectedCategory = categoryInput.value.trim();
       formDiv.remove();
+      noteifyModalOpen = false;
       if (selectedCategory) {
         resolve({ confirmed: true, category: selectedCategory });
       } else {
@@ -741,13 +808,13 @@ async function promptCategoryForScreenshot() {
     };
     cancelBtn.onclick = () => {
       formDiv.remove();
+      noteifyModalOpen = false;
       resolve({ confirmed: false });
     };
   });
 }
 
 async function cropAndUpload(dataUrl, coords) {
-  // Prompt for category before uploading screenshot
   const categoryResult = await promptCategoryForScreenshot();
   if (!categoryResult.confirmed) {
     showFloatingError("Screenshot upload cancelled.");
