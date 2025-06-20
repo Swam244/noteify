@@ -87,10 +87,10 @@ class UserCategories(Base):
 
     id = Column(Integer,primary_key=True,autoincrement=True)
     user_id = Column(Integer,ForeignKey("userauth.user_id", ondelete="CASCADE"),nullable=False)
-    category_name = Column(String,nullable=False) # always insert in uppercase letters to avoid same categories.
+    category_name = Column(String,nullable=False,unique = True) # always insert in uppercase letters to avoid same categories.
 
     user = relationship("UserAuth", back_populates="user_categories")
-
+    category = relationship("UserImages",back_populates="cat")
 
 class UserImages(Base):
     __tablename__ = "user_images"
@@ -99,6 +99,8 @@ class UserImages(Base):
     user_id = Column(Integer, ForeignKey("userauth.user_id", ondelete="CASCADE"), nullable=False)
     image_id = Column(String, nullable=False, unique=True)  
     appwrite_link = Column(String,nullable=False)
+    category = Column(String, ForeignKey("user_categories.category_name",ondelete="CASCADE"),nullable=False)
     uploaded_at = Column(TIMESTAMP(timezone=True), server_default=text('now()'))
 
     user = relationship("UserAuth", back_populates="images")
+    cat = relationship("UserCategories",back_populates="category")

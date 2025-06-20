@@ -246,7 +246,7 @@ def create_image(category: str = Form(...), file: UploadFile = File(...),db: Ses
         print(upload_result["urls"]["view_url"])
         page_id = None
         database_id = db.query(NotionID).filter(NotionID.user_id == user.user_id).first().database_id
-        category = category.upper
+        category = category.upper()
         exist = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
         
         if not exist:
