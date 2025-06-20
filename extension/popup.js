@@ -109,6 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     statusMsg.style.display = "none";
     settingsView.style.display = "flex";
     userInfo.textContent = `${currentUser?.username} (${currentUser?.email})`;
+    if (screenshotBtn) screenshotBtn.style.display = "none";
 
     const validPreferences = ['RAW', 'CATEGORIZED_AND_ENRICHED', 'CATEGORIZED_AND_RAW'];
     if (currentUser?.preference && validPreferences.includes(currentUser.preference)) {
