@@ -112,3 +112,4 @@ docker-compose.override.yml
 # Prompt configuration
 backend/app/core/prompt_config.json
 tmp.txt
+qdrant_storage

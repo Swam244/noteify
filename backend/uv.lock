@@ -80,6 +80,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "groq" },
+    { name = "gunicorn" },
     { name = "inflect" },
     { name = "itsdangerous" },
     { name = "notion-client" },
@@ -108,6 +109,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=45.0.4" },
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "groq", specifier = ">=0.28.0" },
+    { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "inflect", specifier = ">=7.5.0" },
     { name = "itsdangerous", specifier = ">=2.2.0" },
     { name = "notion-client", specifier = ">=2.3.0" },
@@ -494,6 +496,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/46/ad/ca34132d183c5b8ffbf7cd1698e2286dab4933d3ffb73471f88da8080798/grpcio_tools-1.73.0-cp313-cp313-musllinux_1_1_x86_64.whl", hash = "sha256:6eea6770c24efdc6032a802347d62071644fa61c89d9bfd45802f55edac97130", size = 3115927, upload-time = "2025-06-09T10:07:47.416Z" },
     { url = "https://files.pythonhosted.org/packages/93/5e/474dad48d458930e96dbd5648236b69e5d1dca3063d59051c2d41dc5fe40/grpcio_tools-1.73.0-cp313-cp313-win32.whl", hash = "sha256:55b1186ff90fc7e5618a4efd3eef340e25a973a6805ce2e771f042670867e9ad", size = 980322, upload-time = "2025-06-09T10:07:49.694Z" },
     { url = "https://files.pythonhosted.org/packages/01/aa/9baf452ccf1c10f9bea5fc80bdc4cacde321e26f9c8986edbe79f51598f0/grpcio_tools-1.73.0-cp313-cp313-win_amd64.whl", hash = "sha256:a76c735f2eb3a9be63fb4837511c30afadbe05e926631d70457fb54edda1e84d", size = 1151841, upload-time = "2025-06-09T10:07:51.924Z" },
+]
+
+[[package]]
+name = "gunicorn"
+version = "23.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/34/72/9614c465dc206155d93eff0ca20d42e1e35afc533971379482de953521a4/gunicorn-23.0.0.tar.gz", hash = "sha256:f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec", size = 375031, upload-time = "2024-08-10T20:25:27.378Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cb/7d/6dac2a6e1eba33ee43f318edbed4ff29151a49b5d37f080aad1e6469bca4/gunicorn-23.0.0-py3-none-any.whl", hash = "sha256:ec400d38950de4dfd418cff8328b2c8faed0edb0d517d3394e457c317908ca4d", size = 85029, upload-time = "2024-08-10T20:25:24.996Z" },
 ]
 
 [[package]]

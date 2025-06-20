@@ -10,6 +10,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from redis.asyncio import Redis
 import logging
 
+# Base.metadata.create_all(bind=engine,checkfirst=True)  # Tables are created only when they do not exist.
+
 app = FastAPI()
 app.mount("/pdfjs", StaticFiles(directory="static/pdfjs"), name="pdfjs")    
 initDataCollection()
@@ -71,5 +73,6 @@ async def general_exception_handler(request, exc):
 @app.get("/")
 def root():
     logger.info("Root endpoint accessed")
-    text = "AI is very helpful in today's daily life"
+    text = "Hello from noteify !!"
+
     return {"Message": text}

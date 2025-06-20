@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     QDRANT_URL: str
     QDRANT_API_KEY : str
     VECTOR_DB_NAME : str
+    VECTOR_DB_NAME_TEST : str
 
     GROQ_API_KEY : str
     GROQ_MODEL : str

@@ -5,18 +5,23 @@ from app.core.s3_handler import uploadImage
 from app.db.models import UserAuth,UserCategories,NotionID,NotionPage,Preferences
 from app.db.database import get_db
 from app.db.schemas import *
-from app.utils import Autherize,normalizeCategoryName, getNotionToken
+from app.utils import Autherize,getNotionToken,validateCodeLanguage
 from fastapi import APIRouter,Depends,UploadFile, File,BackgroundTasks, Form
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
+from redis import Redis
 from sqlalchemy.orm import Session
 from pathlib import Path
 import uuid
 import logging
 import json
+import secrets
 import os
 
+
 logger = logging.getLogger(__name__)
+
+redisClient = Redis(host="localhost", port=6379, decode_responses=True)
 
 router = APIRouter(prefix="/notes",tags=['Notes'])
 
@@ -35,13 +40,15 @@ def getUserCategories(user: UserAuth = Depends(Autherize), db: Session = Depends
 
 
 @router.post("/category")
-def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
+def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize),db : Session = Depends(get_db)):
     logger.info(f"Predicting category for user: {user.user_id}, text length: {len(data.text)}")
+    
     if len(data.text) < 30:
         logger.warning("Highlighted text too short to be noteworthy.")
         return JSONResponse({
             "detail":"Highlighted text too short to be noteworthy."
         },status_code=status.HTTP_400_BAD_REQUEST)
+    
     if len(data.text) > 2000:
         logger.warning("Text too long (NOTION DOESNT SUPPORT ADDING TOO LONG SENTENCES)")
         return JSONResponse({
@@ -49,6 +56,7 @@ def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
         },status_code=status.HTTP_400_BAD_REQUEST)
 
     initialCat = similaritySearchCategory(data.text,user.user_id)
+    token = secrets.token_urlsafe(24)
 
     if initialCat:
         logger.info(f"Initial category found for user: {user.user_id}")
@@ -58,18 +66,36 @@ def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
                 initialCat[0].payload['category']: 1.0  # score is artificial here
             }
         }
-    
+        
+        try:
+            category_json = initialCat[0].payload['llm_predictions']
+            cache_key_category = f"category_{user.user_id}_{token}"
+            print(category_json)
+            print(type(category_json))
+            redisClient.setex(cache_key_category, 60, json.dumps(category_json))
+        
+        except Exception as e:
+            print(e)
+            return e
+        
         return JSONResponse({
-            "category":initialCat[0].payload['category']
+            "category":initialCat[0].payload['category'],
+            "token":token
         })
     
-    category_json = json.loads(categorize_note(data.text))
     category_found = None
+    
+    try:
+        category_preds = categorize_note(user,db,data.text)
+        category_json = json.loads(category_preds)
+        print(type(category_preds))
+        cache_key_category = f"category_{user.user_id}_{token}"
+        redisClient.setex(cache_key_category,60,category_preds)
 
-    result = {
-        "text": data.text,
-        "categories": category_json
-    }
+    except Exception as e:
+        print(e)
+        return e
+
     try:
         mx_score = 0
         for category in category_json:
@@ -80,9 +106,11 @@ def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
         logger.info(f"Predicted category: {category_found} for user: {user.user_id}")
         return JSONResponse(
             {
-                "category":category_found
+                "category":category_found,
+                "token":token
             }
         ,status_code=status.HTTP_200_OK)
+
     except Exception as e:
         logger.error(f"Error predicting category: {str(e)}")
         return JSONResponse({"detail": f"Error predicting category: {str(e)}"}, status_code=500)
@@ -95,7 +123,7 @@ def categoryPredict(data : Notes,user : UserAuth = Depends(Autherize)):
 @router.post("/create/category")
 def createCategory(data : Category, user : UserAuth = Depends(Autherize), db : Session = Depends(get_db)):
     logger.info(f"Attempting to create category: {data.category} for user: {user.user_id}")
-    category = normalizeCategoryName(data.category)
+    category = data.category.upper()
     print(category)
     user_id = user.user_id
     exist = db.query(UserCategories).filter(UserCategories.user_id == user_id).filter(UserCategories.category_name == category).first()
@@ -218,7 +246,7 @@ def create_image(category: str = Form(...), file: UploadFile = File(...),db: Ses
         print(upload_result["urls"]["view_url"])
         page_id = None
         database_id = db.query(NotionID).filter(NotionID.user_id == user.user_id).first().database_id
-        category = normalizeCategoryName(category)
+        category = category.upper
         exist = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
         
         if not exist:
@@ -279,20 +307,42 @@ def createNotesCategorize(data : CategoryNotes,background_tasks : BackgroundTask
                 },status_code=status.HTTP_200_OK
             )
 
-    logger.info("Trying to get user preference")
-    preference = user.preference.value
-    logger.info(f"Found preference for user {user.user_id} to be {preference}")
     
     token = getNotionToken(user,db)
     database_id = db.query(NotionID).filter(NotionID.user_id == user.user_id).first().database_id
     
-    category = normalizeCategoryName(data.category)
+    category = data.category.upper()
     
     exist = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
     page_id = None
     
     code = data.checked
 
+    # REDIS STUFF
+    try:
+        redis_token = data.token    
+        logger.info(f"Token found in request for user {user.user_id} with value {redis_token}")
+        key = f"category_{user.user_id}_{redis_token}"
+        raw_preds = redisClient.get(key) # String
+        logger.info(f"Raw preds from cache :- {raw_preds} {type(raw_preds)}")
+        llm_predictions = json.loads(raw_preds) # Dictionary
+        logger.info(f"json converted preds :- {llm_predictions}  {type(llm_predictions)}")    
+        llm_top1 = None
+        print(type(llm_predictions))
+        redisClient.delete(key)
+        mx_score = 0
+        for cat in llm_predictions:
+            score = float(llm_predictions[cat])
+            if score > mx_score:
+                mx_score = score
+                llm_top1 = cat
+
+        llm_top1 = llm_top1.upper()
+        
+    except Exception as e:
+        logger.info(f"Error :- {e}")
+        return e
+    
     if not exist:
         try:
             logger.info(f"Page Not found , Creating new page with title {category}")
@@ -309,7 +359,6 @@ def createNotesCategorize(data : CategoryNotes,background_tasks : BackgroundTask
 
     if not page_id:
         logger.info(f"Page found of category {category} for user {user.user_id}, extracting page_id")
-        # info = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
         page_id = exist.notion_page_id
 
 
@@ -329,15 +378,17 @@ def createNotesCategorize(data : CategoryNotes,background_tasks : BackgroundTask
             code_text = code_res['code_content']
             code_language = code_res['code_language']
             logger.info(f"Code language detected: {code_language}")
-    
+
+            code_language = validateCodeLanguage(code_language)
+
             try:
                 resp = createNotionBlock(token,page_id,code_text,str(data.destination),True,code_language)
                 logger.info("Successfully created code block in Notion")
             except Exception as e:
                 logger.error(f"Failed to create code block in Notion: {str(e)}")
                 raise HTTPException(500,detail=e)
-    
-            background_tasks.add_task(saveHighlightData,data.text, user.user_id,category,resp,page_id,str(data.destination),True,db)
+
+            background_tasks.add_task(saveHighlightData,data.text, user.user_id,category,resp,page_id,str(data.destination),True,db,llm_predictions,llm_top1)
     
             return JSONResponse(
                 {
@@ -358,7 +409,7 @@ def createNotesCategorize(data : CategoryNotes,background_tasks : BackgroundTask
         logger.error(f"Failed to create text block in Notion: {str(e)}")
         raise HTTPException(500,detail=e)
         
-    background_tasks.add_task(saveHighlightData,data.text, user.user_id,category, resp,page_id,str(data.destination),False,db)
+    background_tasks.add_task(saveHighlightData,data.text, user.user_id,category, resp,page_id,str(data.destination),False,db,llm_predictions,llm_top1)
     
     return JSONResponse(
             {
@@ -382,13 +433,37 @@ def createNotesEnrich(data : CategoryEnrich,background_tasks : BackgroundTasks ,
     token = getNotionToken(user,db)
     database_id = db.query(NotionID).filter(NotionID.user_id == user.user_id).first().database_id
     
-    category = normalizeCategoryName(data.category)
+    category = data.category.upper()
     
     exist = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
     page_id = None
 
     code = data.checked
-    
+
+    # REDIS STUFF
+    try:
+        redis_token = data.token    
+        key = f"category_{user.user_id}_{redis_token}"
+        raw_preds = redisClient.get(key)
+        print(redis_token)
+        print(raw_preds)
+        llm_predictions = json.loads(raw_preds)
+        llm_top1 = None
+        print(llm_predictions)
+        print(type(llm_predictions))
+        redisClient.delete(key)
+        mx_score = 0
+        for cat in llm_predictions:
+            score = float(llm_predictions[cat])
+            if score > mx_score:
+                mx_score = score
+                llm_top1 = cat
+
+    except Exception as e:
+            logger.info(f"Error :- {e}")
+            return e
+
+
     if not exist:
         try:
             logger.info(f"Page Not found , Creating new page with title {category}")
@@ -426,7 +501,9 @@ def createNotesEnrich(data : CategoryEnrich,background_tasks : BackgroundTasks ,
             code_text = code_res['code_content']
             code_language = code_res['code_language']
             logger.info(f"Code language detected: {code_language}")
-    
+
+            code_language = validateCodeLanguage(code_language)
+
             try:
                 resp = createNotionBlock(token,page_id,code_text,str(data.destination),True,code_language)
                 logger.info("Successfully created code block in Notion")
@@ -434,7 +511,7 @@ def createNotesEnrich(data : CategoryEnrich,background_tasks : BackgroundTasks ,
                 logger.error(f"Failed to create code block in Notion: {str(e)}")
                 raise HTTPException(500,detail=e)
     
-            background_tasks.add_task(saveHighlightData,data.text, user.user_id,category,resp,page_id,str(data.destination),True,db)
+            background_tasks.add_task(saveHighlightData,data.text, user.user_id,category,resp,page_id,str(data.destination),True,db, llm_predictions,llm_top1)
     
             return JSONResponse(
                 {
@@ -473,7 +550,7 @@ def createNotesEnrich(data : CategoryEnrich,background_tasks : BackgroundTasks ,
     except Exception as e:
         raise HTTPException(500,detail=e)
     
-    background_tasks.add_task(saveHighlightData,enriched_text, user.user_id,category,resp,page_id,str(data.destination),False,db)
+    background_tasks.add_task(saveHighlightData,enriched_text, user.user_id,category,resp,page_id,str(data.destination),False,db,llm_predictions,llm_top1)
 
     return JSONResponse(
         {
