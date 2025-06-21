@@ -27,7 +27,7 @@ storage = Storage(client)
 
 
 
-def createUrls(file_id: str, db : Session, user : UserAuth, bucket_id: str = BUCKET_ID, project_id: str = PROJECT_ID, endpoint: str = ENDPOINT):
+def createUrls(file_id: str, category : str ,db : Session, user : UserAuth, bucket_id: str = BUCKET_ID, project_id: str = PROJECT_ID, endpoint: str = ENDPOINT):
     logger.info(f"[createUrls] Called with file_id={file_id}, user_id={user.user_id}")
     view_url = f"{endpoint}/storage/buckets/{bucket_id}/files/{file_id}/view?project={project_id}"
     download_url = f"{endpoint}/v1/storage/buckets/{bucket_id}/files/{file_id}/download?project={project_id}"
@@ -36,7 +36,8 @@ def createUrls(file_id: str, db : Session, user : UserAuth, bucket_id: str = BUC
         newObj = UserImages(
             user_id = user.user_id,
             image_id = file_id, 
-            appwrite_link = view_url
+            appwrite_link = view_url,
+            category = category
         )
         db.add(newObj)
         db.commit()
@@ -87,7 +88,7 @@ def getImageInfo(file_id: str,db : Session, user : UserAuth):
 
 
 
-def uploadImage(file_path: str, file_id: str,db : Session, user : UserAuth, bucket_id: str = BUCKET_ID,permissions: Optional[list] = None):
+def uploadImage(category : str, file_path: str, file_id: str,db : Session, user : UserAuth, bucket_id: str = BUCKET_ID,permissions: Optional[list] = None):
     logger.info(f"[uploadImage] Called with file_path={file_path}, file_id={file_id}, user_id={user.user_id}")
     
     try:
@@ -102,7 +103,7 @@ def uploadImage(file_path: str, file_id: str,db : Session, user : UserAuth, buck
             permissions=permissions
         )
         logger.info(f"[uploadImage] File uploaded to Appwrite with file_id={result['$id']}")
-        urls = createUrls(result["$id"],db,user)
+        urls = createUrls(result["$id"],category,db,user)
         logger.info(f"[uploadImage] URLs created for file_id={file_id}")
     
         return {
