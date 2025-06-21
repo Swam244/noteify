@@ -224,6 +224,7 @@ def create_image(category: str = Form(...), file: UploadFile = File(...),db: Ses
     temp_filename = str(uuid.uuid4()).replace("-", "")[:24]
     file_path = images_dir / temp_filename
     token = getNotionToken(user,db)
+    category = category.upper()
 
     try:
         content = file.file.read()
@@ -232,21 +233,8 @@ def create_image(category: str = Form(...), file: UploadFile = File(...),db: Ses
             f.write(content)
         
         logger.info(f"Image saved temporarily at: {file_path}")
-        upload_result = uploadImage(str(file_path), temp_filename, db, user)
-        
-        try:
-            os.remove(file_path)
-        except Exception as cleanup_err:
-            logger.warning(f"Could not remove temp file {file_path}: {cleanup_err}")
-        
-        if not upload_result["success"]:
-            logger.error(f"Upload to Appwrite failed: {upload_result.get('error')}")
-            raise HTTPException(status_code=500, detail=f"Failed to upload image: {upload_result.get('error')}")
-        
-        print(upload_result["urls"]["view_url"])
         page_id = None
         database_id = db.query(NotionID).filter(NotionID.user_id == user.user_id).first().database_id
-        category = category.upper()
         exist = db.query(NotionPage).filter(NotionPage.user_id == user.user_id).filter(NotionPage.title == category).first()
         
         if not exist:
@@ -264,6 +252,19 @@ def create_image(category: str = Form(...), file: UploadFile = File(...),db: Ses
         if not page_id:
             logger.info(f"Page found of category {category} for user {user.user_id}, extracting page_id")
             page_id = exist.notion_page_id
+        
+        upload_result = uploadImage(category,str(file_path), temp_filename, db, user)
+        
+        try:
+            os.remove(file_path)
+        except Exception as cleanup_err:
+            logger.warning(f"Could not remove temp file {file_path}: {cleanup_err}")
+        
+        if not upload_result["success"]:
+            logger.error(f"Upload to Appwrite failed: {upload_result.get('error')}")
+            raise HTTPException(status_code=500, detail=f"Failed to upload image: {upload_result.get('error')}")
+        
+        print(upload_result["urls"]["view_url"])
         
         try:
             resp = createImageBlockNotion(token,page_id,upload_result["urls"]["view_url"])

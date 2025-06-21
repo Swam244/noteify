@@ -1,6 +1,6 @@
 from app.core.middleware import RateLimiter
 from app.core.qdrantClient import initDataCollection
-from app.routers import auth,notes,oauth2,pdf,images
+from app.routers import auth,notes,oauth2,pdf,images,help
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -34,6 +34,7 @@ app.include_router(oauth2.router)
 app.include_router(notes.router)
 app.include_router(pdf.router)
 app.include_router(images.router)
+app.include_router(help.router)
 
 
 
