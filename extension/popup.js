@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveCategoryBtn = document.getElementById("saveCategoryBtn");
   const mainHeader = document.getElementById("mainHeader");
   const statusMsgSettings = document.getElementById("statusMsgSettings");
+  const helpBtn = document.getElementById("helpBtn");
 
   let currentUser = null; // Variable to store user data
 
@@ -103,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Toggle to settings view
   settingsToggleBtn.addEventListener("click", () => {
-    document.querySelectorAll("#loginForm, #highlightedText, #sendBtn, #logoutBtn, #refreshBtn, #settingsToggleBtn, #notionMsg, #notionConnectContainer, #mainHeader").forEach(el => {
+    document.querySelectorAll("#loginForm, #highlightedText, #sendBtn, #logoutBtn, #refreshBtn, #settingsToggleBtn, #helpBtn, #notionMsg, #notionConnectContainer, #mainHeader").forEach(el => {
       el.style.display = "none";
     });
     statusMsg.style.display = "none";
@@ -134,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Back to main view
   backBtn.addEventListener("click", async () => {
-    document.querySelectorAll("#loginForm, #highlightedText, #sendBtn, #logoutBtn, #refreshBtn, #settingsToggleBtn, #notionMsg, #notionConnectContainer, #mainHeader").forEach(el => {
+    document.querySelectorAll("#loginForm, #highlightedText, #sendBtn, #logoutBtn, #refreshBtn, #settingsToggleBtn, #helpBtn, #notionMsg, #notionConnectContainer, #mainHeader").forEach(el => {
       el.style.display = "";
     });
     settingsView.style.display = "none";
@@ -214,6 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
           sendBtn.style.display = "none";
           notionMsg.style.display = "none";
           settingsToggleBtn.style.display = "none";
+          helpBtn.style.display = "none";
           mainHeader.style.display = "none";
           if (screenshotBtn) screenshotBtn.style.display = "none";
         } else {
@@ -228,6 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
             sendBtn.style.display = "none";
             statusMsg.style.display = "none";
             settingsToggleBtn.style.display = "none";
+            helpBtn.style.display = "block";
             mainHeader.style.display = "block"; // Show main header
             if (screenshotBtn) screenshotBtn.style.display = "none";
           } else {
@@ -237,6 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
             sendBtn.style.display = "block";
             statusMsg.style.display = "block";
             settingsToggleBtn.style.display = "block";
+            helpBtn.style.display = "block";
             mainHeader.style.display = "block"; // Show main header
             if (screenshotBtn) screenshotBtn.style.display = "block";
           }
@@ -258,8 +262,10 @@ document.addEventListener("DOMContentLoaded", () => {
         sendBtn.style.display = "none";
         notionMsg.style.display = "none";
         settingsToggleBtn.style.display = "none";
+        helpBtn.style.display = "none";
         settingsView.style.display = "none"; // Crucial: ensure settings view is hidden if not logged in
         mainHeader.style.display = "block"; // Ensure header is shown on login page
+        statusMsg.style.display = "block"; // Ensure status message is visible on login page
         if (screenshotBtn) screenshotBtn.style.display = "none";
       } else {
         // console.log("checkLoginStatus: Unexpected error.");
@@ -280,15 +286,32 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (loginForm && loginBtn) {
+    // Clear error messages when user starts typing
+    loginEmail.addEventListener("input", () => {
+      if (statusMsg.textContent && statusMsg.textContent !== "Signing in..." && statusMsg.textContent !== "Login successful!") {
+        statusMsg.textContent = "";
+        statusMsg.style.display = "none";
+      }
+    });
+    
+    loginPassword.addEventListener("input", () => {
+      if (statusMsg.textContent && statusMsg.textContent !== "Signing in..." && statusMsg.textContent !== "Login successful!") {
+        statusMsg.textContent = "";
+        statusMsg.style.display = "none";
+      }
+    });
+
     loginBtn.addEventListener("click", async (e) => {
       e.preventDefault();
       const email = loginEmail.value.trim();
       const password = loginPassword.value.trim();
       if (!email || !password) {
         statusMsg.textContent = "Enter email and password.";
+        statusMsg.style.display = "block";
         return;
       }
       statusMsg.textContent = "Signing in...";
+      statusMsg.style.display = "block";
       try {
         const res = await fetch("https://noteify.duckdns.org/users/login", {
           method: "POST",
@@ -296,14 +319,26 @@ document.addEventListener("DOMContentLoaded", () => {
           credentials: "include",
           body: JSON.stringify({ email, password })
         });
+        
         if (res.status === 200) {
           statusMsg.textContent = "Login successful!";
+          statusMsg.style.display = "block";
           await checkLoginStatus();
         } else {
-          statusMsg.textContent = "Login failed. Check credentials.";
+          // Try to get specific error message from backend
+          try {
+            const errorData = await res.json();
+            statusMsg.textContent = errorData.message || `Login failed (${res.status}). Please check your credentials.`;
+          } catch (parseError) {
+            // If we can't parse the error response, show generic message
+            statusMsg.textContent = `Login failed (${res.status}). Please check your credentials.`;
+          }
+          statusMsg.style.display = "block";
         }
       } catch (err) {
-        statusMsg.textContent = "Network error during login.";
+        console.error("[popup.js] Login error:", err);
+        statusMsg.textContent = "Network error during login. Please check your connection.";
+        statusMsg.style.display = "block";
       }
     });
   }
@@ -346,6 +381,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (signupBtn) {
     signupBtn.addEventListener("click", () => {
       window.open("https://noteify.duckdns.org/pdfjs/signup.html", "_blank");
+    });
+  }
+
+  if (helpBtn) {
+    helpBtn.addEventListener("click", () => {
+      window.open("https://noteify.duckdns.org/help", "_blank");
     });
   }
 
